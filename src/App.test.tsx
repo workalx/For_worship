@@ -27,3 +27,9 @@ test('вкладка «Пісні» відкривається першою і �
   render(<App />);
   expect(await screen.findByRole('button', { name: '+ Нова пісня' })).toBeInTheDocument();
 });
+
+test('вкладка «Тюнер» показує тюнер', async () => {
+  render(<App />);
+  await userEvent.click(screen.getByRole('button', { name: /Тюнер/ }));
+  expect(screen.getByRole('button', { name: 'Увімкнути мікрофон' })).toBeInTheDocument();
+});

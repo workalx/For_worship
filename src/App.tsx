@@ -3,6 +3,7 @@ import { BottomNav, type Tab } from './components/BottomNav';
 import { ServiceScreen } from './service/ServiceScreen';
 import { ServicePlayer } from './service/ServicePlayer';
 import { LibraryScreen } from './library/LibraryScreen';
+import { TunerScreen } from './tuner/TunerScreen';
 import './styles/theme.css';
 
 const TITLES: Record<Tab, string> = {
@@ -30,6 +31,8 @@ export default function App() {
     ) : (
       <ServiceScreen onPlay={(serviceId, index) => setPlaying({ serviceId, index })} />
     );
+  } else if (tab === 'tuner') {
+    screen = <TunerScreen />;
   } else {
     screen = <div className="placeholder-screen">{TITLES[tab]}</div>;
   }
