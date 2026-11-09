@@ -10,8 +10,13 @@ export function useTuner(): { start(): Promise<void>; stop(): void; freq: number
   const [error, setError] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
   const cleanup = useRef<(() => void) | null>(null);
+  /** Номер «сеансу»: stop() і вихід з вкладки його збільшують, і запит дозволу, що запізнився, скасовується. */
+  const generation = useRef(0);
+  const starting = useRef(false);
 
   const stop = useCallback(() => {
+    generation.current++;
+    starting.current = false;
     cleanup.current?.();
     cleanup.current = null;
     setRunning(false);
@@ -19,21 +24,31 @@ export function useTuner(): { start(): Promise<void>; stop(): void; freq: number
   }, []);
 
   const start = useCallback(async () => {
-    if (cleanup.current) return;
+    if (cleanup.current || starting.current) return;
     setError(null);
     if (!navigator.mediaDevices?.getUserMedia) {
       setError('Цей браузер не дає доступу до мікрофона');
       return;
     }
+    starting.current = true;
+    const myGeneration = generation.current;
     let stream: MediaStream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
       });
     } catch {
-      setError('Дозвольте доступ до мікрофона в налаштуваннях браузера');
+      if (myGeneration === generation.current) {
+        starting.current = false;
+        setError('Дозвольте доступ до мікрофона в налаштуваннях браузера');
+      }
       return;
     }
+    if (myGeneration !== generation.current) {
+      stream.getTracks().forEach((t) => t.stop());
+      return;
+    }
+    starting.current = false;
     const ctx = new AudioContext();
     const source = ctx.createMediaStreamSource(stream);
     const analyser = ctx.createAnalyser();
@@ -65,7 +80,14 @@ export function useTuner(): { start(): Promise<void>; stop(): void; freq: number
     };
   }, []);
 
-  useEffect(() => () => cleanup.current?.(), []);
+  useEffect(
+    () => () => {
+      generation.current++;
+      cleanup.current?.();
+      cleanup.current = null;
+    },
+    [],
+  );
 
   return { start, stop, freq, error, running };
 }

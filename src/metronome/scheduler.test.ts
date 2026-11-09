@@ -63,3 +63,17 @@ test('розмір 3/4: номер долі повертається до 0', ()
   expect(beats.slice(0, 5)).toEqual([0, 1, 2, 0, 1]);
   s.stop();
 });
+
+test('різке прискорення не ставить долю в минуле', () => {
+  const clock = { t: 0 };
+  const seen: [number, number][] = [];
+  const s = new Scheduler({ now: () => clock.t, schedule: (time) => seen.push([time, clock.t]) });
+  s.setBpm(60);
+  s.start();
+  s.tick();
+  run(s, clock, 1.4);
+  s.setBpm(250);
+  run(s, clock, 2.5);
+  for (const [time, now] of seen) expect(time).toBeGreaterThanOrEqual(now - 1e-9);
+  s.stop();
+});

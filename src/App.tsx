@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BottomNav, type Tab } from './components/BottomNav';
-import type { Song } from './db/db';
+import { requestPersistentStorage, type Song } from './db/db';
 import { LibraryScreen } from './library/LibraryScreen';
 import { MetronomeScreen } from './metronome/MetronomeScreen';
 import { useMetronome } from './metronome/useMetronome';
@@ -14,6 +14,10 @@ export default function App() {
   const [playing, setPlaying] = useState<{ serviceId: string; index: number } | null>(null);
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const metro = useMetronome();
+
+  useEffect(() => {
+    void requestPersistentStorage();
+  }, []);
 
   const play = (serviceId: string, index: number) => {
     setPlaying({ serviceId, index });
@@ -30,6 +34,7 @@ export default function App() {
         index={playing.index}
         onExit={() => setPlaying(null)}
         onSongShown={setCurrentSong}
+        onIndexChange={(index) => setPlaying((p) => (p ? { ...p, index } : p))}
       />
     ) : (
       <ServiceScreen onPlay={(serviceId, index) => setPlaying({ serviceId, index })} />

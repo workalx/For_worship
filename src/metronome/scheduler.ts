@@ -26,7 +26,10 @@ export class Scheduler {
 
   setBpm(bpm: number): void {
     this.bpm = bpm;
-    if (this.running && this.lastTime !== null) this.nextTime = this.lastTime + 60 / bpm;
+    if (this.running && this.lastTime !== null) {
+      this.nextTime = Math.max(this.lastTime + 60 / bpm, this.opts.now());
+      this.tick();
+    }
   }
 
   setBeats(n: number): void {

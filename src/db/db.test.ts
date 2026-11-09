@@ -1,4 +1,4 @@
-import { db, saveSong, getSong, listSongs, deleteSong, saveService, listServices, deleteService } from './db';
+import { db, requestPersistentStorage, saveSong, getSong, listSongs, deleteSong, saveService, listServices, deleteService } from './db';
 import { exportAll, importAll } from './backup';
 
 beforeEach(async () => {
@@ -63,4 +63,13 @@ test('експорт і відновлення бази', async () => {
 test('неправильний файл копії дає зрозумілу помилку', async () => {
   await expect(importAll('{bad')).rejects.toThrow('Файл не схожий на резервну копію For Worship');
   await expect(importAll('{"a":1}')).rejects.toThrow('Файл не схожий на резервну копію For Worship');
+});
+
+test('просить браузер не видаляти базу (persist)', async () => {
+  const persist = vi.fn(async () => true);
+  Object.defineProperty(navigator, 'storage', { configurable: true, value: { persisted: async () => false, persist } });
+  expect(await requestPersistentStorage()).toBe(true);
+  expect(persist).toHaveBeenCalled();
+  Object.defineProperty(navigator, 'storage', { configurable: true, value: undefined });
+  expect(await requestPersistentStorage()).toBe(false);
 });

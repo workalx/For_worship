@@ -8,6 +8,10 @@ type Props = {
   onPick: (c: SongCandidate) => void;
   onManual: () => void;
   onSettings: () => void;
+  /** Результати попередніх пошуків, щоб не витрачати ліміт повторно. */
+  cache?: Map<string, SongCandidate[]>;
+  /** Зміна значення повторює пошук (наприклад, після помилки). */
+  nonce?: number;
 };
 
 type State = { status: 'loading' } | { status: 'done'; list: SongCandidate[] } | { status: 'error'; error: AiError };
@@ -21,16 +25,25 @@ function hostOf(url?: string): string {
   }
 }
 
-export function OnlineSearch({ query, provider, onPick, onManual, onSettings }: Props) {
-  const [state, setState] = useState<State>({ status: 'loading' });
+export function OnlineSearch({ query, provider, onPick, onManual, onSettings, cache, nonce }: Props) {
+  const [state, setState] = useState<State>(() => {
+    const hit = cache?.get(query);
+    return hit ? { status: 'done', list: hit } : { status: 'loading' };
+  });
 
   useEffect(() => {
     let alive = true;
+    const hit = cache?.get(query);
+    if (hit) {
+      setState({ status: 'done', list: hit });
+      return;
+    }
     setState({ status: 'loading' });
     (async () => {
       try {
         const p = provider ?? getProvider();
         const list = await p.searchSongs(query);
+        cache?.set(query, list);
         if (alive) setState({ status: 'done', list });
       } catch (e) {
         if (alive) setState({ status: 'error', error: e instanceof AiError ? e : new AiError('unknown', String(e)) });
@@ -39,7 +52,7 @@ export function OnlineSearch({ query, provider, onPick, onManual, onSettings }: 
     return () => {
       alive = false;
     };
-  }, [query, provider]);
+  }, [query, provider, nonce]);
 
   if (state.status === 'loading') {
     return (

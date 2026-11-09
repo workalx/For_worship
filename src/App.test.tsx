@@ -45,3 +45,32 @@ test('метроном бере темп з останньої відкрито�
   await userEvent.click(screen.getByRole('button', { name: /З пісні: Ти гідний · 80/ }));
   expect(screen.getByTestId('bpm')).toHaveTextContent('80');
 });
+
+test('після переходу на іншу вкладку служіння продовжується з тієї ж пісні', async () => {
+  const { db, saveSong, saveService } = await import('./db/db');
+  const { fireEvent } = await import('@testing-library/react');
+  await db.songs.clear();
+  await db.services.clear();
+  const a = await saveSong({ title: 'Перша', body: '[C]а', originalKey: 'C' });
+  const b = await saveSong({ title: 'Друга', body: '[G]б', originalKey: 'G' });
+  await saveService({ title: 'Неділя', date: '2999-01-01', items: [{ songId: a.id }, { songId: b.id }] });
+  render(<App />);
+  await userEvent.click(screen.getByRole('button', { name: /Служіння/ }));
+  await userEvent.click(await screen.findByRole('button', { name: '▶ Почати' }));
+  await screen.findByText(/пісня 1 з 2/);
+  const area = screen.getByTestId('swipe-area');
+  fireEvent.pointerDown(area, { clientX: 400, clientY: 300 });
+  fireEvent.pointerUp(area, { clientX: 200, clientY: 300 });
+  await screen.findByText(/пісня 2 з 2/);
+  await userEvent.click(screen.getByRole('button', { name: /Тюнер/ }));
+  await userEvent.click(screen.getByRole('button', { name: /Служіння/ }));
+  expect(await screen.findByText(/пісня 2 з 2/)).toBeInTheDocument();
+});
+
+test('при старті просить браузер зберігати базу постійно', async () => {
+  const persist = vi.fn(async () => true);
+  Object.defineProperty(navigator, 'storage', { configurable: true, value: { persisted: async () => false, persist } });
+  render(<App />);
+  await vi.waitFor(() => expect(persist).toHaveBeenCalled());
+  Object.defineProperty(navigator, 'storage', { configurable: true, value: undefined });
+});

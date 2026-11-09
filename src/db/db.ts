@@ -89,3 +89,15 @@ export async function listServices(): Promise<Service[]> {
 export async function deleteService(id: string): Promise<void> {
   await db.services.delete(id);
 }
+
+/** Просить браузер не видаляти базу при нестачі місця (для встановленої PWA Chrome погоджується). */
+export async function requestPersistentStorage(): Promise<boolean> {
+  try {
+    const storage = navigator.storage;
+    if (!storage?.persist) return false;
+    if (await storage.persisted?.()) return true;
+    return await storage.persist();
+  } catch {
+    return false;
+  }
+}

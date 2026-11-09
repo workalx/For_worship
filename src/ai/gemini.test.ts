@@ -89,3 +89,8 @@ test('checkKey: 200 — ключ робочий, 400 — ні, ключ у за�
   const bad = vi.fn(async () => new Response('{}', { status: 400 }));
   expect(await checkKey('k2', bad as unknown as typeof fetch)).toBe(false);
 });
+
+test('тональність від Gemini перевіряється: погана відкидається, акорд зводиться до тональності', async () => {
+  const out = await make(reply('[{"title":"A","key":"Ми мінор","body":"[Em]a"},{"title":"B","key":"F#m7","body":"[F#m]b"},{"title":"C","key":"am","body":"[Am]c"}]')).searchSongs('x');
+  expect(out.map((c) => c.key)).toEqual([undefined, 'F#m', undefined]);
+});

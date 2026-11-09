@@ -9,9 +9,10 @@ type Props = {
   index: number;
   onExit: () => void;
   onSongShown?: (song: Song) => void;
+  onIndexChange?: (index: number) => void;
 };
 
-export function ServicePlayer({ serviceId, index: startIndex, onExit, onSongShown }: Props) {
+export function ServicePlayer({ serviceId, index: startIndex, onExit, onSongShown, onIndexChange }: Props) {
   const [service, setService] = useState<Service | null>(null);
   const [songs, setSongs] = useState<(Song | undefined)[]>([]);
   const [index, setIndex] = useState(startIndex);
@@ -51,7 +52,10 @@ export function ServicePlayer({ serviceId, index: startIndex, onExit, onSongShow
   }
 
   const go = (dir: 'next' | 'prev') => {
-    setIndex((i) => (dir === 'next' ? Math.min(i + 1, total - 1) : Math.max(i - 1, 0)));
+    const next = dir === 'next' ? Math.min(index + 1, total - 1) : Math.max(index - 1, 0);
+    if (next === index) return;
+    setIndex(next);
+    onIndexChange?.(next);
   };
 
   const changeKey = (key: string) => {

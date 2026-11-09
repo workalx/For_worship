@@ -49,7 +49,6 @@ export function PhotoImport({ onResult, onError }: Props) {
         ref={input}
         type="file"
         accept="image/*"
-        capture="environment"
         hidden
         onChange={(e) => {
           const f = e.target.files?.[0];

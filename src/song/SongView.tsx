@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import type { SongDoc, SongLine } from '../music/song';
-import { chooseColumns, fitFontSize } from './fit';
+import { chooseLayout, contentFits, type Layout } from './fit';
 import './SongView.css';
 
 type Segment = { chord?: string; text: string };
@@ -45,37 +45,50 @@ function Line({ line }: { line: SongLine }) {
 export function SongView({ doc }: { doc: SongDoc }) {
   const outer = useRef<HTMLDivElement>(null);
   const inner = useRef<HTMLDivElement>(null);
-  const [fit, setFit] = useState({ px: 28, overflow: false });
-  const lineCount = doc.sections.reduce((n, s) => n + s.lines.length + (s.label ? 1 : 0), 0);
-  const cols = chooseColumns(lineCount);
+  const [layout, setLayout] = useState<Layout>({ cols: 1, px: 28, overflow: false });
 
   useLayoutEffect(() => {
     const o = outer.current;
     const i = inner.current;
     if (!o || !i) return;
     const measure = () => {
-      const result = fitFontSize((px) => {
+      const cs = getComputedStyle(o);
+      const availableHeight = o.clientHeight - parseFloat(cs.paddingTop || '0') - parseFloat(cs.paddingBottom || '0');
+      const apply = (cols: 1 | 2, px: number) => {
+        i.style.columnCount = String(cols);
         i.style.fontSize = `${px}px`;
-        return i.scrollHeight <= o.clientHeight + 1 && i.scrollWidth <= i.clientWidth + 1;
+      };
+      const result = chooseLayout((cols, px) => {
+        apply(cols, px);
+        const gap = cols > 1 ? parseFloat(getComputedStyle(i).columnGap || '0') || 0 : 0;
+        const columnWidth = (i.clientWidth - gap * (cols - 1)) / cols;
+        let maxLineWidth = 0;
+        i.querySelectorAll<HTMLElement>('.song-line').forEach((l) => {
+          maxLineWidth = Math.max(maxLineWidth, l.scrollWidth);
+        });
+        return contentFits({ contentHeight: i.scrollHeight, availableHeight, maxLineWidth, columnWidth });
       });
-      i.style.fontSize = `${result.px}px`;
-      setFit((prev) => (prev.px === result.px && prev.overflow === result.overflow ? prev : result));
+      apply(result.cols, result.px);
+      setLayout((prev) =>
+        prev.cols === result.cols && prev.px === result.px && prev.overflow === result.overflow ? prev : result,
+      );
     };
     measure();
     if (typeof ResizeObserver === 'undefined') return;
     const ro = new ResizeObserver(measure);
     ro.observe(o);
     return () => ro.disconnect();
-  }, [doc, cols]);
+  }, [doc]);
 
   return (
     <div
       ref={outer}
-      className={`song-view${fit.overflow ? ' overflow' : ''}`}
-      data-font-px={fit.px}
+      className={`song-view${layout.overflow ? ' overflow' : ''}`}
+      data-font-px={layout.px}
+      data-cols={layout.cols}
       data-testid="song-view"
     >
-      <div ref={inner} className="song-columns" style={{ columnCount: cols, fontSize: `${fit.px}px` }}>
+      <div ref={inner} className="song-columns" style={{ columnCount: layout.cols, fontSize: `${layout.px}px` }}>
         {doc.sections.map((s, si) => (
           <section key={si} className="song-section">
             {s.label && <div className="song-label">{s.label}</div>}

@@ -1,5 +1,6 @@
 import { AiError, type AiProvider, type SongCandidate } from './provider';
 import { photoPrompt, searchPrompt, urlPrompt } from './prompts';
+import { parseChord } from '../music/chords';
 
 const API = 'https://generativelanguage.googleapis.com/v1beta/models';
 
@@ -31,7 +32,10 @@ function toCandidate(x: unknown): SongCandidate | null {
   if (!title || !body) return null;
   const c: SongCandidate = { title, body };
   if (typeof o.artist === 'string' && o.artist.trim()) c.artist = o.artist.trim();
-  if (typeof o.key === 'string' && o.key.trim()) c.key = o.key.trim();
+  if (typeof o.key === 'string') {
+    const p = parseChord(o.key.trim());
+    if (p) c.key = p.root + (/^m(?!aj)/.test(p.quality) ? 'm' : '');
+  }
   if (typeof o.bpm === 'number' && o.bpm > 0) c.bpm = Math.round(o.bpm);
   if (typeof o.source === 'string' && o.source.trim()) c.source = o.source.trim();
   return c;

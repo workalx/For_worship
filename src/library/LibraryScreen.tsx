@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { deleteSong, getSong, listServices, listSongs, saveService, saveSong, type Service, type Song } from '../db/db';
 import { guessKey } from '../music/chordpro';
 import { SongScreen } from '../song/SongScreen';
@@ -55,7 +55,8 @@ export function LibraryScreen({ onPlay, onSongShown }: Props) {
   const [service, setService] = useState<Service | undefined>();
   const [viewSong, setViewSong] = useState<Song | undefined>();
   const [toast, setToast] = useState<string | null>(null);
-  const [online, setOnline] = useState<string | null>(null);
+  const [online, setOnline] = useState<{ query: string; nonce: number } | null>(null);
+  const searchCache = useRef(new Map<string, SongCandidate[]>());
   const [aiError, setAiError] = useState<AiError | null>(null);
 
   const reload = useCallback(async () => {
@@ -173,8 +174,10 @@ export function LibraryScreen({ onPlay, onSongShown }: Props) {
               className="btn blue"
               disabled={!query.trim()}
               onClick={() => {
+                const q = query.trim();
                 setAiError(null);
-                setOnline(query.trim());
+                searchCache.current.delete(q);
+                setOnline((prev) => ({ query: q, nonce: (prev?.nonce ?? 0) + 1 }));
               }}
             >
               🔍 В інтернеті
@@ -208,14 +211,15 @@ export function LibraryScreen({ onPlay, onSongShown }: Props) {
                 ← Сховати результати пошуку
               </button>
               <OnlineSearch
-                query={online}
+                query={online.query}
+                nonce={online.nonce}
+                cache={searchCache.current}
                 onPick={(c) => {
-                  setOnline(null);
                   setMode({ kind: 'edit', song: candidateToSong(c) });
                 }}
                 onManual={() => {
                   setOnline(null);
-                  setMode({ kind: 'edit', song: { title: online } });
+                  setMode({ kind: 'edit', song: { title: online.query } });
                 }}
                 onSettings={() => {
                   setOnline(null);

@@ -38,3 +38,31 @@ test('немає ключа — кнопка налаштувань', async () =
   await userEvent.click(await screen.findByRole('button', { name: 'Відкрити налаштування' }));
   expect(onSettings).toHaveBeenCalled();
 });
+
+test('збережені результати показуються без нового запиту', async () => {
+  const searchSongs = vi.fn(async () => [{ title: 'Нове', body: '[C]x' }]);
+  const cache = new Map([['світло', [{ title: 'З кешу', body: '[G]a' }]]]);
+  render(<OnlineSearch query="світло" cache={cache} provider={fake(searchSongs)} onPick={() => {}} onManual={() => {}} onSettings={() => {}} />);
+  expect(screen.getByText('З кешу')).toBeInTheDocument();
+  expect(searchSongs).not.toHaveBeenCalled();
+});
+
+test('результати потрапляють у кеш', async () => {
+  const cache = new Map();
+  render(<OnlineSearch query="q" cache={cache} provider={fake(async () => [{ title: 'R', body: '[C]x' }])} onPick={() => {}} onManual={() => {}} onSettings={() => {}} />);
+  await screen.findByText('R');
+  expect(cache.get('q')).toEqual([{ title: 'R', body: '[C]x' }]);
+});
+
+test('новий nonce повторює пошук після помилки', async () => {
+  let n = 0;
+  const provider = fake(async () => {
+    n++;
+    if (n === 1) throw new AiError('network');
+    return [{ title: 'Вдалося', body: '[C]x' }];
+  });
+  const { rerender } = render(<OnlineSearch query="q" nonce={1} provider={provider} onPick={() => {}} onManual={() => {}} onSettings={() => {}} />);
+  await screen.findByText(/Немає інтернету/);
+  rerender(<OnlineSearch query="q" nonce={2} provider={provider} onPick={() => {}} onManual={() => {}} onSettings={() => {}} />);
+  expect(await screen.findByText('Вдалося')).toBeInTheDocument();
+});
