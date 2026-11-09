@@ -16,3 +16,9 @@ test('перемикає вкладку', async () => {
   await userEvent.click(tuner);
   expect(tuner).toHaveAttribute('aria-current', 'page');
 });
+
+test('вкладка «Служіння» показує список служінь', async () => {
+  render(<App />);
+  await userEvent.click(screen.getByRole('button', { name: /Служіння/ }));
+  expect(await screen.findByRole('button', { name: '+ Нове служіння' })).toBeInTheDocument();
+});
