@@ -22,3 +22,8 @@ test('вкладка «Служіння» показує список служі
   await userEvent.click(screen.getByRole('button', { name: /Служіння/ }));
   expect(await screen.findByRole('button', { name: '+ Нове служіння' })).toBeInTheDocument();
 });
+
+test('вкладка «Пісні» відкривається першою і показує бібліотеку', async () => {
+  render(<App />);
+  expect(await screen.findByRole('button', { name: '+ Нова пісня' })).toBeInTheDocument();
+});

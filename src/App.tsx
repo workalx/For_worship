@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { BottomNav, type Tab } from './components/BottomNav';
 import { ServiceScreen } from './service/ServiceScreen';
 import { ServicePlayer } from './service/ServicePlayer';
+import { LibraryScreen } from './library/LibraryScreen';
 import './styles/theme.css';
 
 const TITLES: Record<Tab, string> = {
@@ -15,8 +16,15 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('songs');
   const [playing, setPlaying] = useState<{ serviceId: string; index: number } | null>(null);
 
+  const play = (serviceId: string, index: number) => {
+    setPlaying({ serviceId, index });
+    setTab('service');
+  };
+
   let screen;
-  if (tab === 'service') {
+  if (tab === 'songs') {
+    screen = <LibraryScreen onPlay={play} />;
+  } else if (tab === 'service') {
     screen = playing ? (
       <ServicePlayer serviceId={playing.serviceId} index={playing.index} onExit={() => setPlaying(null)} />
     ) : (
