@@ -34,3 +34,26 @@ test('«+ Нова пісня» відкриває редактор', async () =
   await userEvent.click(await screen.findByRole('button', { name: '+ Нова пісня' }));
   expect(screen.getByLabelText('Текст пісні')).toBeInTheDocument();
 });
+
+test('пошук в інтернеті без ключа веде в налаштування', async () => {
+  localStorage.clear();
+  render(<LibraryScreen onPlay={() => {}} />);
+  const online = await screen.findByRole('button', { name: '🔍 В інтернеті' });
+  expect(online).toBeDisabled();
+  await userEvent.type(screen.getByLabelText('Пошук пісні'), 'Свята любов');
+  await userEvent.click(online);
+  expect(await screen.findByText('Додайте ключ Gemini в налаштуваннях')).toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: 'Відкрити налаштування' }));
+  expect(screen.getByLabelText('Ключ Gemini')).toBeInTheDocument();
+});
+
+test('⚙ відкриває налаштування', async () => {
+  render(<LibraryScreen onPlay={() => {}} />);
+  await userEvent.click(await screen.findByRole('button', { name: 'Налаштування' }));
+  expect(screen.getByText('Резервна копія')).toBeInTheDocument();
+});
+
+test('кнопка «📷 Фото» активна', async () => {
+  render(<LibraryScreen onPlay={() => {}} />);
+  expect(await screen.findByRole('button', { name: '📷 Фото' })).toBeEnabled();
+});

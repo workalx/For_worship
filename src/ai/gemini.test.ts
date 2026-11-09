@@ -1,4 +1,4 @@
-import { createGeminiProvider, extractJson } from './gemini';
+import { checkKey, createGeminiProvider, extractJson } from './gemini';
 import { AiError } from './provider';
 
 function reply(text: string, status = 200) {
@@ -79,4 +79,13 @@ test('extractJson', () => {
   expect(extractJson('```\n{"a":1}\n```')).toEqual({ a: 1 });
   expect(extractJson('text [1,2] tail')).toEqual([1, 2]);
   expect(extractJson('нічого')).toBeUndefined();
+});
+
+test('checkKey: 200 — ключ робочий, 400 — ні, ключ у заголовку', async () => {
+  const ok = vi.fn(async (_u: string, _i?: RequestInit) => new Response('{"models":[]}', { status: 200 }));
+  expect(await checkKey('k1', ok as unknown as typeof fetch)).toBe(true);
+  expect(ok.mock.calls[0][0]).toBe('https://generativelanguage.googleapis.com/v1beta/models');
+  expect((ok.mock.calls[0][1]!.headers as Record<string, string>)['x-goog-api-key']).toBe('k1');
+  const bad = vi.fn(async () => new Response('{}', { status: 400 }));
+  expect(await checkKey('k2', bad as unknown as typeof fetch)).toBe(false);
 });

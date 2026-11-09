@@ -4,9 +4,30 @@ import { guessKey } from '../music/chordpro';
 import { SongScreen } from '../song/SongScreen';
 import { nextSunday } from '../service/swipe';
 import { SongEditor } from './SongEditor';
+import { OnlineSearch } from './OnlineSearch';
+import { PhotoImport } from './PhotoImport';
+import { normalizeImportedText } from './importText';
+import { SettingsScreen } from '../settings/SettingsScreen';
+import type { AiError, SongCandidate } from '../ai/provider';
 import './Library.css';
+import '../settings/Settings.css';
 
-type Mode = { kind: 'list' } | { kind: 'view'; id: string } | { kind: 'edit'; song?: Partial<Song> };
+type Mode =
+  | { kind: 'list' }
+  | { kind: 'view'; id: string }
+  | { kind: 'edit'; song?: Partial<Song> }
+  | { kind: 'settings' };
+
+function candidateToSong(c: SongCandidate): Partial<Song> {
+  return {
+    title: c.title,
+    artist: c.artist,
+    body: normalizeImportedText(c.body),
+    originalKey: c.key,
+    bpm: c.bpm,
+    source: c.source,
+  };
+}
 
 function todayIso(): string {
   const d = new Date();
@@ -34,6 +55,8 @@ export function LibraryScreen({ onPlay, onSongShown }: Props) {
   const [service, setService] = useState<Service | undefined>();
   const [viewSong, setViewSong] = useState<Song | undefined>();
   const [toast, setToast] = useState<string | null>(null);
+  const [online, setOnline] = useState<string | null>(null);
+  const [aiError, setAiError] = useState<AiError | null>(null);
 
   const reload = useCallback(async () => {
     const [found, all, services] = await Promise.all([listSongs(query), listSongs(), listServices()]);
@@ -72,6 +95,10 @@ export function LibraryScreen({ onPlay, onSongShown }: Props) {
     setService(updated);
     setToast(`Додано в «${updated.title}»`);
   };
+
+  if (mode.kind === 'settings') {
+    return <SettingsScreen onClose={() => setMode({ kind: 'list' })} />;
+  }
 
   if (mode.kind === 'edit') {
     const editing = mode.song;
@@ -126,6 +153,9 @@ export function LibraryScreen({ onPlay, onSongShown }: Props) {
         <div className="pill">
           Збережено <b>{allSongs.length}</b>
         </div>
+        <button type="button" className="icon-btn" aria-label="Налаштування" onClick={() => setMode({ kind: 'settings' })}>
+          ⚙
+        </button>
       </header>
       <div className="library-body">
         <div className="panel" style={{ flex: 1.3 }}>
@@ -138,18 +168,62 @@ export function LibraryScreen({ onPlay, onSongShown }: Props) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
-            <button type="button" className="btn blue" disabled title="Пошук в інтернеті з’явиться згодом">
+            <button
+              type="button"
+              className="btn blue"
+              disabled={!query.trim()}
+              onClick={() => {
+                setAiError(null);
+                setOnline(query.trim());
+              }}
+            >
               🔍 В інтернеті
             </button>
-            <button type="button" className="btn blue" disabled title="Розпізнавання фото з’явиться згодом">
-              📷 Фото
-            </button>
+            <PhotoImport
+              onResult={(c) => {
+                setAiError(null);
+                setMode({ kind: 'edit', song: candidateToSong(c) });
+              }}
+              onError={setAiError}
+            />
           </div>
           <div className="row">
             <button type="button" className="btn" onClick={() => setMode({ kind: 'edit' })}>
               + Нова пісня
             </button>
           </div>
+          {aiError && (
+            <div className="online-status">
+              <div className="error-text">{aiError.message}</div>
+              {aiError.kind === 'no-key' || aiError.kind === 'bad-key' ? (
+                <button type="button" className="btn primary" onClick={() => setMode({ kind: 'settings' })}>
+                  Відкрити налаштування
+                </button>
+              ) : null}
+            </div>
+          )}
+          {online !== null && (
+            <>
+              <button type="button" className="btn" style={{ alignSelf: 'flex-start' }} onClick={() => setOnline(null)}>
+                ← Сховати результати пошуку
+              </button>
+              <OnlineSearch
+                query={online}
+                onPick={(c) => {
+                  setOnline(null);
+                  setMode({ kind: 'edit', song: candidateToSong(c) });
+                }}
+                onManual={() => {
+                  setOnline(null);
+                  setMode({ kind: 'edit', song: { title: online } });
+                }}
+                onSettings={() => {
+                  setOnline(null);
+                  setMode({ kind: 'settings' });
+                }}
+              />
+            </>
+          )}
           <div className="panel-tag">Мої пісні</div>
           {songs.length === 0 && (
             <p style={{ color: 'var(--muted)' }}>

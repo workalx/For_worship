@@ -44,3 +44,11 @@ test('редагування існуючої пісні зберігає id', a
   await waitFor(() => expect(onSave).toHaveBeenCalled());
   expect(onSave.mock.calls[0][0].id).toBe('x1');
 });
+
+test('попередній перегляд одразу показує акорди над складами', async () => {
+  const { fireEvent } = await import('@testing-library/react');
+  const { container } = render(<SongEditor onSave={() => {}} onCancel={() => {}} />);
+  fireEvent.change(screen.getByLabelText('Текст пісні'), { target: { value: 'G     D\nТи світло' } });
+  expect(container.querySelectorAll('.editor-preview .seg').length).toBe(2);
+  expect(container.querySelector('.editor-preview .chords-only')).toBeNull();
+});

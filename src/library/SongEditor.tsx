@@ -26,7 +26,7 @@ export function SongEditor({ initial, onSave, onCancel, onDelete }: Props) {
   const [error, setError] = useState<string | null>(null);
   const area = useRef<HTMLTextAreaElement>(null);
 
-  const doc = useMemo(() => parseChordPro(body), [body]);
+  const doc = useMemo(() => parseChordPro(normalizeImportedText(body)), [body]);
 
   const onPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const pasted = e.clipboardData.getData('text');

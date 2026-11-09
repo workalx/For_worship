@@ -109,3 +109,13 @@ export function createGeminiProvider(cfg: GeminiConfig, fetchFn: typeof fetch = 
     },
   };
 }
+
+/** Перевіряє ключ: пробний запит до списку моделей. */
+export async function checkKey(apiKey: string, fetchFn: typeof fetch = fetch): Promise<boolean> {
+  try {
+    const res = await fetchFn(API, { headers: { 'x-goog-api-key': apiKey } });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
