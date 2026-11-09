@@ -1,21 +1,19 @@
 import { useState } from 'react';
 import { BottomNav, type Tab } from './components/BottomNav';
-import { ServiceScreen } from './service/ServiceScreen';
-import { ServicePlayer } from './service/ServicePlayer';
+import type { Song } from './db/db';
 import { LibraryScreen } from './library/LibraryScreen';
+import { MetronomeScreen } from './metronome/MetronomeScreen';
+import { useMetronome } from './metronome/useMetronome';
+import { ServicePlayer } from './service/ServicePlayer';
+import { ServiceScreen } from './service/ServiceScreen';
 import { TunerScreen } from './tuner/TunerScreen';
 import './styles/theme.css';
-
-const TITLES: Record<Tab, string> = {
-  songs: 'Пісні',
-  service: 'Служіння',
-  tuner: 'Тюнер',
-  metronome: 'Метроном',
-};
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('songs');
   const [playing, setPlaying] = useState<{ serviceId: string; index: number } | null>(null);
+  const [currentSong, setCurrentSong] = useState<Song | null>(null);
+  const metro = useMetronome();
 
   const play = (serviceId: string, index: number) => {
     setPlaying({ serviceId, index });
@@ -24,17 +22,29 @@ export default function App() {
 
   let screen;
   if (tab === 'songs') {
-    screen = <LibraryScreen onPlay={play} />;
+    screen = <LibraryScreen onPlay={play} onSongShown={setCurrentSong} />;
   } else if (tab === 'service') {
     screen = playing ? (
-      <ServicePlayer serviceId={playing.serviceId} index={playing.index} onExit={() => setPlaying(null)} />
+      <ServicePlayer
+        serviceId={playing.serviceId}
+        index={playing.index}
+        onExit={() => setPlaying(null)}
+        onSongShown={setCurrentSong}
+      />
     ) : (
       <ServiceScreen onPlay={(serviceId, index) => setPlaying({ serviceId, index })} />
     );
   } else if (tab === 'tuner') {
     screen = <TunerScreen />;
   } else {
-    screen = <div className="placeholder-screen">{TITLES[tab]}</div>;
+    screen = (
+      <MetronomeScreen
+        metro={metro}
+        songBpm={currentSong?.bpm}
+        songTitle={currentSong?.title}
+        songTimeSig={currentSong?.timeSig}
+      />
+    );
   }
 
   return (

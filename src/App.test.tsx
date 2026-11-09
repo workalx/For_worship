@@ -33,3 +33,15 @@ test('вкладка «Тюнер» показує тюнер', async () => {
   await userEvent.click(screen.getByRole('button', { name: /Тюнер/ }));
   expect(screen.getByRole('button', { name: 'Увімкнути мікрофон' })).toBeInTheDocument();
 });
+
+test('метроном бере темп з останньої відкритої пісні', async () => {
+  const { db, saveSong } = await import('./db/db');
+  await db.songs.clear();
+  await saveSong({ title: 'Ти гідний', body: '[E]Гідний', originalKey: 'E', bpm: 80 });
+  render(<App />);
+  await userEvent.click(await screen.findByText('Ти гідний'));
+  await screen.findByText('Гідний');
+  await userEvent.click(screen.getByRole('button', { name: /Метроном/ }));
+  await userEvent.click(screen.getByRole('button', { name: /З пісні: Ти гідний · 80/ }));
+  expect(screen.getByTestId('bpm')).toHaveTextContent('80');
+});
