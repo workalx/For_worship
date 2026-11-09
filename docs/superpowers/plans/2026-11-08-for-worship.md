@@ -34,7 +34,7 @@
 
 ---
 
-### Задача 1: Каркас проєкту, тема, навігація
+### Task 1: Каркас проєкту, тема, навігація
 
 **Файли:**
 - Створити: `package.json`, `vite.config.ts`, `tsconfig.json`, `index.html`, `src/main.tsx`, `src/App.tsx`, `src/styles/theme.css`, `src/components/BottomNav.tsx`, `src/test/setup.ts`, `.gitignore` (містить `node_modules`, `dist`, `.superpowers/`)
@@ -50,7 +50,7 @@
 - [ ] **Крок 5:** `npm test`, очікується PASS; `npm run build` без помилок.
 - [ ] **Крок 6:** Коміт `feat: scaffold app shell with bottom navigation`.
 
-### Задача 2: Акорди й транспонування
+### Task 2: Акорди й транспонування
 
 **Файли:** Створити `src/music/chords.ts`; тест `src/music/chords.test.ts`
 
@@ -71,7 +71,7 @@
 - [ ] **Крок 3:** Реалізувати. Регулярний вираз для якості: `(m|maj|min|dim|aug|sus|add|M)?\d*(sus\d|add\d+|b\d+|#\d+|maj\d*|\(.*?\))*` з послідовністю нот за індексом 0–11.
 - [ ] **Крок 4:** PASS. **Крок 5:** коміт `feat: chord parsing and transposition`.
 
-### Задача 3: Формат пісні (ChordPro + «акорди над рядком»)
+### Task 3: Формат пісні (ChordPro + «акорди над рядком»)
 
 **Файли:** Створити `src/music/song.ts`, `src/music/chordpro.ts`, `src/music/chordsOverLyrics.ts`; тести `src/music/chordpro.test.ts`, `src/music/chordsOverLyrics.test.ts`
 
@@ -96,7 +96,7 @@
   - `transposeDoc` з +2 перетворює `G` на `A` у всіх рядках.
 - [ ] **Крок 2:** FAIL. **Крок 3:** Реалізувати. **Крок 4:** PASS. **Крок 5:** коміт `feat: song document parsing`.
 
-### Задача 4: Сховище (Dexie) та резервна копія
+### Task 4: Сховище (Dexie) та резервна копія
 
 **Файли:** Створити `src/db/db.ts`, `src/db/backup.ts`; тест `src/db/db.test.ts`
 
@@ -114,7 +114,7 @@
 - [ ] **Крок 1: Тести, що падають:** збереження й читання пісні; `listSongs('світло')` знаходить пісню за текстом; `deleteSong` прибирає її зі служіння; `exportAll` → очистити базу → `importAll` повертає ті самі кількості; `importAll('{bad')` кидає помилку з українським текстом.
 - [ ] **Крок 2:** FAIL. **Крок 3:** Реалізувати (`crypto.randomUUID()` для id). **Крок 4:** PASS. **Крок 5:** коміт `feat: local storage and backup`.
 
-### Задача 5: Показ пісні з підбором розміру шрифту
+### Task 5: Показ пісні з підбором розміру шрифту
 
 **Файли:** Створити `src/song/fit.ts`, `src/song/SongView.tsx`, `src/song/SongView.css`; тест `src/song/fit.test.ts`
 
@@ -129,7 +129,7 @@
 - [ ] **Крок 5:** Перевірка в браузері (`npm run dev`, вікно 1280×800): демо-пісня з макета вміщається у 2 колонки без прокрутки; пісня на 70 рядків показує прокрутку на 14px.
 - [ ] **Крок 6:** Коміт `feat: song view with fit-to-screen`.
 
-### Задача 6: Екран пісні (шапка, тональність, екран не гасне)
+### Task 6: Екран пісні (шапка, тональність, екран не гасне)
 
 **Файли:** Створити `src/song/SongScreen.tsx`, `src/hooks/useWakeLock.ts`; тест `src/song/SongScreen.test.tsx`
 
@@ -142,7 +142,7 @@
 - [ ] **Крок 1: Тести, що падають:** пісня `originalKey:'D'` з тілом `[D]Слово`: клік «+» викликає `onKeyChange('Eb')` (написання з `ALL_KEYS`); з `displayKey:'G'` на екрані показано акорд `G`; пісня `originalKey:'Am'`, клік «−» викликає `onKeyChange('Abm')`.
 - [ ] **Крок 2:** FAIL. **Крок 3:** Реалізувати. **Крок 4:** PASS. **Крок 5:** коміт `feat: song screen with key controls`.
 
-### Задача 7: Служіння та свайп
+### Task 7: Служіння та свайп
 
 **Файли:** Створити `src/service/swipe.ts`, `src/service/ServiceScreen.tsx`, `src/service/ServicePlayer.tsx`; тести `src/service/swipe.test.ts`, `src/service/ServicePlayer.test.tsx`
 
@@ -155,7 +155,7 @@
 - [ ] **Крок 1: Тести, що падають:** `detectSwipe(-120, 10) === 'next'`; `detectSwipe(120, 0) === 'prev'`; `detectSwipe(-60, 0) === null`; **перевірка 3:** `detectSwipe(-90, 70) === null` (вертикальний жест зі зсувом); у `ServicePlayer` зі служінням із 2 пісень симуляція pointerdown/pointerup з dx=−150 показує назву другої пісні; на останній пісні свайп «next» нічого не робить.
 - [ ] **Крок 2:** FAIL. **Крок 3:** Реалізувати; підключити вкладку «Служіння» в App (перелік служінь ↔ програвач). **Крок 4:** PASS. **Крок 5:** коміт `feat: services with swipe navigation`.
 
-### Задача 8: Бібліотека пісень, вставка тексту, редактор
+### Task 8: Бібліотека пісень, вставка тексту, редактор
 
 **Файли:** Створити `src/library/LibraryScreen.tsx`, `src/library/SongEditor.tsx`, `src/library/importText.ts`; тести `src/library/importText.test.ts`, `src/library/SongEditor.test.tsx`
 
@@ -169,7 +169,7 @@
 - [ ] **Крок 1: Тести, що падають:** `normalizeImportedText('Em  C\nСлово')` містить `[Em]` і `[C]`; `guessKey('[Am]a [F]b') === 'Am'`; `SongEditor`: ввести назву й текст, натиснути «Зберегти», і `onSave` отримує `key` з `guessKey`.
 - [ ] **Крок 2:** FAIL. **Крок 3:** Реалізувати; підключити вкладку «Пісні». **Крок 4:** PASS. **Крок 5:** коміт `feat: song library, editor and paste import`.
 
-### Задача 9: Тюнер
+### Task 9: Тюнер
 
 **Файли:** Створити `src/tuner/notes.ts`, `src/tuner/useTuner.ts`, `src/tuner/TunerScreen.tsx`; тести `src/tuner/notes.test.ts`, `src/tuner/useTuner.test.ts`
 
@@ -186,7 +186,7 @@
 - [ ] **Крок 5:** Ручна перевірка в Chrome на ПК з мікрофоном: нота відображається, у тиші стоїть «—».
 - [ ] **Крок 6:** Коміт `feat: chromatic guitar tuner`.
 
-### Задача 10: Метроном
+### Task 10: Метроном
 
 **Файли:** Створити `src/metronome/tempo.ts`, `src/metronome/scheduler.ts`, `src/metronome/MetronomeScreen.tsx`; тести `src/metronome/tempo.test.ts`, `src/metronome/scheduler.test.ts`
 
@@ -202,7 +202,7 @@
 - [ ] **Крок 1: Тести, що падають:** `clampBpm(10) === 30`, `clampBpm(300) === 250`; `tapTempo([0,500,1000,1500]) === 120`; `tapTempo([0,500,3000]) === null`; `beatsPerBar('6/8') === 6`; `Scheduler` з фальшивим `now` (0 → 1.0 с кроками по 0.025, bpm 120, beats 4) запланував долі в часи 0, 0.5, 1.0 з номерами 0, 1, 2, і `setBpm(60)` під час роботи не створює двох доль ближче ніж 0.5 с.
 - [ ] **Крок 2:** FAIL. **Крок 3:** Реалізувати; підключити вкладку. **Крок 4:** PASS. **Крок 5:** коміт `feat: metronome with lookahead scheduler`.
 
-### Задача 11: ШІ-провайдер Gemini та налаштування
+### Task 11: ШІ-провайдер Gemini та налаштування
 
 **Файли:** Створити `src/ai/provider.ts`, `src/ai/gemini.ts`, `src/ai/prompts.ts`, `src/settings/settings.ts`; тести `src/ai/gemini.test.ts`, `src/settings/settings.test.ts`
 
@@ -219,7 +219,7 @@
 - [ ] **Крок 1: Тести, що падають (фальшивий `fetchFn`):** запит іде на правильну URL з моделлю, ключ стоїть у заголовку і не потрапляє в URL; **перевірка 5:** відповідь з текстом ` ```json\n[{"title":"A","body":"[G]x"}]\n``` ` дає 1 кандидата; відповідь `[]` дає `AiError` з `kind:'empty'`; текст без JSON теж дає `empty`; статус 429 дає `quota`; відмова fetch (`TypeError`) дає `network`. `settings`: збереження й завантаження; за замовчуванням `geminiModel === DEFAULT_GEMINI_MODEL`.
 - [ ] **Крок 2:** FAIL. **Крок 3:** Реалізувати. **Крок 4:** PASS. **Крок 5:** коміт `feat: gemini provider for search and photo`.
 
-### Задача 12: Пошук і фото в інтерфейсі, екран налаштувань
+### Task 12: Пошук і фото в інтерфейсі, екран налаштувань
 
 **Файли:** Створити `src/library/OnlineSearch.tsx`, `src/library/PhotoImport.tsx`, `src/settings/SettingsScreen.tsx`; змінити `src/library/LibraryScreen.tsx`; тест `src/library/OnlineSearch.test.tsx`
 
@@ -234,7 +234,7 @@
 - [ ] **Крок 5:** Ручна перевірка зі справжнім ключем (коли користувач його дасть): пошук українською, російською й англійською назвою; фото друкованого аркуша.
 - [ ] **Крок 6:** Коміт `feat: online search, photo import and settings`.
 
-### Задача 13: PWA, офлайн і публікація на GitHub Pages
+### Task 13: PWA, офлайн і публікація на GitHub Pages
 
 **Файли:** Змінити `vite.config.ts`; створити `public/icons/icon-192.png`, `public/icons/icon-512.png`, `public/icons/icon-maskable-512.png` (згенерувати з SVG-іконки: жовтий медіатор/гітара на `#0f1012`), `.github/workflows/deploy.yml`, `README.md` (як встановити на планшет)
 
