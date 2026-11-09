@@ -1,4 +1,4 @@
-import { isChord, transposeChord } from './chords';
+import { isChord, parseChord, transposeChord } from './chords';
 import type { ChordAt, SongDoc, SongLine, SongSection } from './song';
 
 const SECTION_WORDS = [
@@ -84,4 +84,13 @@ export function transposeDoc(doc: SongDoc, semitones: number, preferFlats: boole
       })),
     })),
   };
+}
+
+/** Тональність за першим акордом пісні: корінь + «m», якщо акорд мінорний. */
+export function guessKey(body: string): string | undefined {
+  for (const m of body.matchAll(BRACKET_RE)) {
+    const p = parseChord(m[1]);
+    if (p) return p.root + (/^m(?!aj)/.test(p.quality) ? 'm' : '');
+  }
+  return undefined;
 }

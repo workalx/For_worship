@@ -1,4 +1,4 @@
-import { parseChordPro, transposeDoc, looksLikeChordPro } from './chordpro';
+import { guessKey, parseChordPro, transposeDoc, looksLikeChordPro } from './chordpro';
 
 test('розбирає акорди в рядку з позиціями', () => {
   const doc = parseChordPro('[G]Ти світло в [D]темряві');
@@ -42,4 +42,11 @@ test('looksLikeChordPro', () => {
   expect(looksLikeChordPro('[G]Слово')).toBe(true);
   expect(looksLikeChordPro('G  D\nСлово')).toBe(false);
   expect(looksLikeChordPro('[Приспів]')).toBe(false);
+});
+
+test('guessKey — перший акорд пісні', () => {
+  expect(guessKey('[Am]a [F]b')).toBe('Am');
+  expect(guessKey('Куплет\n[G/B]a')).toBe('G');
+  expect(guessKey('[F#m7]x')).toBe('F#m');
+  expect(guessKey('без акордів')).toBeUndefined();
 });

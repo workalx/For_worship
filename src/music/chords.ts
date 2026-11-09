@@ -65,3 +65,11 @@ export function semitonesBetween(fromKey: string, toKey: string): number {
   if (d > 6) d -= 12;
   return d;
 }
+
+/** Тональність, зсунута на n півтонів, у написанні з ALL_KEYS (мінор зберігає «m»). */
+export function shiftKey(key: string, semitones: number): string {
+  const i = noteIndex(keyRoot(key));
+  if (i < 0) return key;
+  const j = (((i + semitones) % 12) + 12) % 12;
+  return ALL_KEYS[j] + (isMinorKey(key) ? 'm' : '');
+}

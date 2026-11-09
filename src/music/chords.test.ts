@@ -1,4 +1,4 @@
-import { transposeChord, isChord, semitonesBetween, keyPrefersFlats, ALL_KEYS, parseChord } from './chords';
+import { shiftKey, transposeChord, isChord, semitonesBetween, keyPrefersFlats, ALL_KEYS, parseChord } from './chords';
 
 describe('transposeChord', () => {
   test.each([
@@ -38,4 +38,11 @@ test('semitonesBetween і keyPrefersFlats', () => {
 
 test('ALL_KEYS — 12 тональностей', () => {
   expect(ALL_KEYS).toEqual(['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']);
+});
+
+test('shiftKey пише тональність як в ALL_KEYS і зберігає мінор', () => {
+  expect(shiftKey('D', 1)).toBe('Eb');
+  expect(shiftKey('Am', -1)).toBe('Abm');
+  expect(shiftKey('B', 1)).toBe('C');
+  expect(shiftKey('F#m', 0)).toBe('F#m');
 });
