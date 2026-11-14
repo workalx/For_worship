@@ -8,6 +8,6 @@ test('без ключа — помилка no-key', () => {
 });
 
 test('з ключем — провайдер', () => {
-  saveSettings({ provider: 'gemini', geminiKey: 'k', searchModel: DEFAULT_SEARCH_MODEL, photoModel: DEFAULT_PHOTO_MODEL });
+  saveSettings({ provider: 'gemini', geminiKey: 'k', searchModel: DEFAULT_SEARCH_MODEL, photoModel: DEFAULT_PHOTO_MODEL, searchEngine: 'brave' });
   expect(typeof getProvider().searchSongs).toBe('function');
 });

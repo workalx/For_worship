@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { checkKey } from '../ai/gemini';
 import { exportAll, importAll } from '../db/backup';
 import { DEFAULT_PHOTO_MODEL, DEFAULT_SEARCH_MODEL, loadSettings, saveSettings } from './settings';
+import { SEARCH_ENGINES, type SearchEngine } from '../library/webSearch';
 import './Settings.css';
 
 function today(): string {
@@ -16,6 +17,7 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
   const [show, setShow] = useState(false);
   const [searchModel, setSearchModel] = useState(initial.searchModel);
   const [photoModel, setPhotoModel] = useState(initial.photoModel);
+  const [searchEngine, setSearchEngine] = useState<SearchEngine>(initial.searchEngine);
   const [status, setStatus] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -26,6 +28,7 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
       geminiKey: key.trim(),
       searchModel: searchModel.trim() || DEFAULT_SEARCH_MODEL,
       photoModel: photoModel.trim() || DEFAULT_PHOTO_MODEL,
+      searchEngine,
     });
     setStatus('Збережено');
   };
@@ -105,6 +108,33 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
             </button>
             <button type="button" className="btn" disabled={!key.trim() || checking} onClick={() => void check()}>
               {checking ? 'Перевіряю…' : 'Перевірити ключ'}
+            </button>
+          </div>
+        </section>
+        <section className="panel">
+          <h3>Пошук у браузері (без ключа)</h3>
+          <p className="hint">
+            Якщо ключа Gemini немає, кнопка «В інтернеті» відкриває пошук у браузері. Скопіюйте там текст пісні
+            з акордами й натисніть у програмі «Вставити з буфера».
+          </p>
+          <label className="field-row">
+            <span>Пошукова система</span>
+            <select
+              className="field"
+              aria-label="Пошукова система"
+              value={searchEngine}
+              onChange={(e) => setSearchEngine(e.target.value as SearchEngine)}
+            >
+              {SEARCH_ENGINES.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="row">
+            <button type="button" className="btn" onClick={save}>
+              Зберегти вибір
             </button>
           </div>
         </section>

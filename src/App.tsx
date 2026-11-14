@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { BottomNav, type Tab } from './components/BottomNav';
 import { requestPersistentStorage, type Song } from './db/db';
 import { LibraryScreen } from './library/LibraryScreen';
+import type { Shared } from './library/shareTarget';
 import { MetronomeScreen } from './metronome/MetronomeScreen';
 import { useMetronome } from './metronome/useMetronome';
 import { ServicePlayer } from './service/ServicePlayer';
@@ -9,11 +10,13 @@ import { ServiceScreen } from './service/ServiceScreen';
 import { TunerScreen } from './tuner/TunerScreen';
 import './styles/theme.css';
 
-export default function App() {
+export default function App({ shared }: { shared?: Shared | null }) {
   const [tab, setTab] = useState<Tab>('songs');
   const [playing, setPlaying] = useState<{ serviceId: string; index: number } | null>(null);
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const metro = useMetronome();
+  // Поширений вміст показуємо один раз: після повернення на вкладку «Пісні» він не має відкриватися знову.
+  const pendingShared = useRef(shared ?? null);
 
   useEffect(() => {
     void requestPersistentStorage();
@@ -26,7 +29,7 @@ export default function App() {
 
   let screen;
   if (tab === 'songs') {
-    screen = <LibraryScreen onPlay={play} onSongShown={setCurrentSong} />;
+    screen = <LibraryScreen onPlay={play} onSongShown={setCurrentSong} shared={pendingShared.current} />;
   } else if (tab === 'service') {
     screen = playing ? (
       <ServicePlayer

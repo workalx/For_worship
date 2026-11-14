@@ -35,16 +35,75 @@ test('«+ Нова пісня» відкриває редактор', async () =
   expect(screen.getByLabelText('Текст пісні')).toBeInTheDocument();
 });
 
-test('пошук в інтернеті без ключа веде в налаштування', async () => {
+test('пошук в інтернеті без ключа відкриває пошук у браузері', async () => {
   localStorage.clear();
+  const open = vi.spyOn(window, 'open').mockImplementation(() => null);
   render(<LibraryScreen onPlay={() => {}} />);
   const online = await screen.findByRole('button', { name: '🔍 В інтернеті' });
   expect(online).toBeDisabled();
   await userEvent.type(screen.getByLabelText('Пошук пісні'), 'Свята любов');
   await userEvent.click(online);
-  expect(await screen.findByText('Додайте ключ Gemini в налаштуваннях')).toBeInTheDocument();
-  await userEvent.click(screen.getByRole('button', { name: 'Відкрити налаштування' }));
-  expect(screen.getByLabelText('Ключ Gemini')).toBeInTheDocument();
+  expect(open).toHaveBeenCalledTimes(1);
+  expect(open.mock.calls[0][0]).toBe(
+    `https://search.brave.com/search?q=${encodeURIComponent('Свята любов акорди')}`,
+  );
+  expect(screen.getByText(/Пошук відкрито в браузері/)).toBeInTheDocument();
+  expect(screen.queryByText('Додайте ключ Gemini в налаштуваннях')).not.toBeInTheDocument();
+  open.mockRestore();
+});
+
+test('«🌐 У браузері» використовує пошукову систему з налаштувань', async () => {
+  localStorage.setItem('fw.settings', JSON.stringify({ geminiKey: 'k', searchEngine: 'google' }));
+  const open = vi.spyOn(window, 'open').mockImplementation(() => null);
+  render(<LibraryScreen onPlay={() => {}} />);
+  const btn = await screen.findByRole('button', { name: '🌐 У браузері' });
+  expect(btn).toBeDisabled();
+  await userEvent.type(screen.getByLabelText('Пошук пісні'), 'Свята любов');
+  await userEvent.click(btn);
+  expect(open.mock.calls[0][0]).toBe(`https://www.google.com/search?q=${encodeURIComponent('Свята любов акорди')}`);
+  open.mockRestore();
+  localStorage.clear();
+});
+
+test('«📋 Вставити з буфера» відкриває редактор з розібраною піснею', async () => {
+  const user = userEvent.setup();
+  render(<LibraryScreen onPlay={() => {}} />);
+  await user.type(await screen.findByLabelText('Пошук пісні'), 'Свята любов');
+  await navigator.clipboard.writeText('Em      C\nСвята любов');
+  await user.click(screen.getByRole('button', { name: '📋 Вставити з буфера' }));
+  const body = (await screen.findByLabelText('Текст пісні')) as HTMLTextAreaElement;
+  expect(body.value).toContain('[Em]');
+  expect(body.value).toContain('[C]');
+  expect(screen.getByDisplayValue('Свята любов')).toBeInTheDocument();
+});
+
+test('порожній буфер відкриває редактор з підказкою', async () => {
+  const user = userEvent.setup();
+  render(<LibraryScreen onPlay={() => {}} />);
+  await screen.findByText('Великий Бог');
+  await navigator.clipboard.writeText('   ');
+  await user.click(screen.getByRole('button', { name: '📋 Вставити з буфера' }));
+  expect(await screen.findByLabelText('Текст пісні')).toHaveValue('');
+  expect(screen.getByText(/Не вдалося прочитати буфер/)).toBeInTheDocument();
+});
+
+test('поширений з браузера текст одразу відкривається в редакторі', async () => {
+  render(
+    <LibraryScreen
+      onPlay={() => {}}
+      shared={{ kind: 'text', text: 'Am   F\nСлово', title: 'Нова пісня з сайту', source: 'https://example.com/s' }}
+    />,
+  );
+  const body = (await screen.findByLabelText('Текст пісні')) as HTMLTextAreaElement;
+  expect(body.value).toContain('[Am]');
+  expect(screen.getByDisplayValue('Нова пісня з сайту')).toBeInTheDocument();
+});
+
+test('поширене посилання без ключа підказує поділитися текстом', async () => {
+  localStorage.clear();
+  render(<LibraryScreen onPlay={() => {}} shared={{ kind: 'url', url: 'https://example.com/s' }} />);
+  expect(await screen.findByLabelText('Пошук пісні')).toHaveValue('https://example.com/s');
+  expect(screen.getByText(/Отримано лише посилання/)).toBeInTheDocument();
 });
 
 test('⚙ відкриває налаштування', async () => {

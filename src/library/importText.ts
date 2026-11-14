@@ -1,6 +1,8 @@
 import { looksLikeChordPro } from '../music/chordpro';
 import { chordsOverLyricsToChordPro } from '../music/chordsOverLyrics';
 
+import type { Song } from '../db/db';
+
 export { guessKey } from '../music/chordpro';
 
 /**
@@ -17,4 +19,9 @@ export function normalizeImportedText(text: string): string {
     .replace(/\n{3,}/g, '\n\n')
     .replace(/^\n+/, '')
     .replace(/\n+$/, '');
+}
+
+/** Чернетка пісні зі вставленого або поширеного тексту (тональність редактор визначить сам). */
+export function songFromPastedText(text: string, title?: string, source?: string): Partial<Song> {
+  return { title: title?.trim() || undefined, body: normalizeImportedText(text), source };
 }

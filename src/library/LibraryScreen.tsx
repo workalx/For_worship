@@ -6,7 +6,10 @@ import { nextSunday } from '../service/swipe';
 import { SongEditor } from './SongEditor';
 import { OnlineSearch } from './OnlineSearch';
 import { PhotoImport } from './PhotoImport';
-import { normalizeImportedText } from './importText';
+import { normalizeImportedText, songFromPastedText } from './importText';
+import { openInBrowser } from './webSearch';
+import type { Shared } from './shareTarget';
+import { loadSettings } from '../settings/settings';
 import { SettingsScreen } from '../settings/SettingsScreen';
 import type { AiError, SongCandidate } from '../ai/provider';
 import './Library.css';
@@ -45,17 +48,34 @@ function nearestService(services: Service[]): Service | undefined {
 type Props = {
   onPlay: (serviceId: string, index: number) => void;
   onSongShown?: (song: Song) => void;
+  /** Текст або посилання, якими поділилися з програмою з браузера. */
+  shared?: Shared | null;
 };
 
-export function LibraryScreen({ onPlay, onSongShown }: Props) {
-  const [mode, setMode] = useState<Mode>({ kind: 'list' });
-  const [query, setQuery] = useState('');
+function hasGeminiKey(): boolean {
+  return loadSettings().geminiKey.trim() !== '';
+}
+
+export function LibraryScreen({ onPlay, onSongShown, shared }: Props) {
+  const [mode, setMode] = useState<Mode>(() =>
+    shared?.kind === 'text'
+      ? { kind: 'edit', song: songFromPastedText(shared.text, shared.title, shared.source) }
+      : { kind: 'list' },
+  );
+  const [query, setQuery] = useState(shared?.kind === 'url' ? shared.url : '');
   const [songs, setSongs] = useState<Song[]>([]);
   const [allSongs, setAllSongs] = useState<Song[]>([]);
   const [service, setService] = useState<Service | undefined>();
   const [viewSong, setViewSong] = useState<Song | undefined>();
-  const [toast, setToast] = useState<string | null>(null);
-  const [online, setOnline] = useState<{ query: string; nonce: number } | null>(null);
+  const [toast, setToast] = useState<string | null>(
+    shared?.kind === 'url' && !hasGeminiKey()
+      ? 'Отримано лише посилання. Виділіть на сторінці текст пісні й поділіться ним'
+      : null,
+  );
+  const [online, setOnline] = useState<{ query: string; nonce: number } | null>(() =>
+    shared?.kind === 'url' && hasGeminiKey() ? { query: shared.url, nonce: 1 } : null,
+  );
+  const [browserHint, setBrowserHint] = useState(false);
   const searchCache = useRef(new Map<string, SongCandidate[]>());
   const [aiError, setAiError] = useState<AiError | null>(null);
 
@@ -85,7 +105,7 @@ export function LibraryScreen({ onPlay, onSongShown }: Props) {
 
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(null), 2500);
+    const t = setTimeout(() => setToast(null), 4000);
     return () => clearTimeout(t);
   }, [toast]);
 
@@ -97,6 +117,29 @@ export function LibraryScreen({ onPlay, onSongShown }: Props) {
     setToast(`Додано в «${updated.title}»`);
   };
 
+  const searchInBrowser = (q: string) => {
+    setAiError(null);
+    setOnline(null);
+    openInBrowser(q, loadSettings().searchEngine);
+    setBrowserHint(true);
+  };
+
+  const pasteFromClipboard = async () => {
+    let text = '';
+    try {
+      text = (await navigator.clipboard.readText()) ?? '';
+    } catch {
+      /* доступ до буфера заборонено або не підтримується */
+    }
+    setBrowserHint(false);
+    if (!text.trim()) {
+      setToast('Не вдалося прочитати буфер. Вставте текст у поле «Текст пісні» вручну');
+      setMode({ kind: 'edit', song: { title: query.trim() || undefined } });
+      return;
+    }
+    setMode({ kind: 'edit', song: songFromPastedText(text, query.trim()) });
+  };
+
   if (mode.kind === 'settings') {
     return <SettingsScreen onClose={() => setMode({ kind: 'list' })} />;
   }
@@ -104,20 +147,23 @@ export function LibraryScreen({ onPlay, onSongShown }: Props) {
   if (mode.kind === 'edit') {
     const editing = mode.song;
     return (
-      <SongEditor
-        initial={editing}
-        onSave={(s) => setMode({ kind: 'view', id: s.id })}
-        onCancel={() => setMode(editing?.id ? { kind: 'view', id: editing.id } : { kind: 'list' })}
-        onDelete={
-          editing?.id
-            ? async () => {
-                if (!confirm(`Видалити пісню «${editing.title}»?`)) return;
-                await deleteSong(editing.id!);
-                setMode({ kind: 'list' });
-              }
-            : undefined
-        }
-      />
+      <>
+        <SongEditor
+          initial={editing}
+          onSave={(s) => setMode({ kind: 'view', id: s.id })}
+          onCancel={() => setMode(editing?.id ? { kind: 'view', id: editing.id } : { kind: 'list' })}
+          onDelete={
+            editing?.id
+              ? async () => {
+                  if (!confirm(`Видалити пісню «${editing.title}»?`)) return;
+                  await deleteSong(editing.id!);
+                  setMode({ kind: 'list' });
+                }
+              : undefined
+          }
+        />
+        {toast && <div className="toast">{toast}</div>}
+      </>
     );
   }
 
@@ -175,6 +221,11 @@ export function LibraryScreen({ onPlay, onSongShown }: Props) {
               disabled={!query.trim()}
               onClick={() => {
                 const q = query.trim();
+                if (!hasGeminiKey()) {
+                  searchInBrowser(q);
+                  return;
+                }
+                setBrowserHint(false);
                 setAiError(null);
                 searchCache.current.delete(q);
                 setOnline((prev) => ({ query: q, nonce: (prev?.nonce ?? 0) + 1 }));
@@ -194,7 +245,21 @@ export function LibraryScreen({ onPlay, onSongShown }: Props) {
             <button type="button" className="btn" onClick={() => setMode({ kind: 'edit' })}>
               + Нова пісня
             </button>
+            <button type="button" className="btn" onClick={() => void pasteFromClipboard()}>
+              📋 Вставити з буфера
+            </button>
+            <button type="button" className="btn" disabled={!query.trim()} onClick={() => searchInBrowser(query.trim())}>
+              🌐 У браузері
+            </button>
           </div>
+          {browserHint && (
+            <div className="online-status">
+              <div>
+                Пошук відкрито в браузері. Знайдіть пісню, виділіть і скопіюйте текст з акордами, поверніться сюди
+                й натисніть «📋 Вставити з буфера». Або виділіть текст і виберіть «Поділитися» → For Worship.
+              </div>
+            </div>
+          )}
           {aiError && (
             <div className="online-status">
               <div className="error-text">{aiError.message}</div>
@@ -280,6 +345,7 @@ export function LibraryScreen({ onPlay, onSongShown }: Props) {
           )}
         </div>
       </div>
+      {toast && <div className="toast">{toast}</div>}
     </div>
   );
 }

@@ -21,6 +21,12 @@ export default defineConfig({
         theme_color: '#0f1012',
         start_url: '.',
         scope: '.',
+        // Android: виділити текст у браузері → «Поділитися» → For Worship.
+        share_target: {
+          action: './',
+          method: 'GET',
+          params: { title: 'title', text: 'text', url: 'url' },
+        },
         icons: [
           { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' },
