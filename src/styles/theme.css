@@ -50,5 +50,7 @@ input, textarea, select { font: inherit; color: inherit; user-select: text; }
   width: 30px; height: 30px; border-radius: 50%; background: var(--border); border: none;
   display: flex; align-items: center; justify-content: center; font-weight: 700; padding: 0;
 }
+.pill .round:disabled { opacity: 0.35; }
+.pill .capo-shape { color: var(--muted); font-size: 12px; }
 .placeholder-screen { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--muted); }
 .error-text { color: var(--danger); }

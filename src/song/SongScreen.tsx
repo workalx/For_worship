@@ -10,24 +10,31 @@ type Props = {
   song: Song;
   displayKey?: string;
   onKeyChange: (key: string) => void;
+  /** Якщо задано, поруч з «Капо» з'являються кнопки − / +. */
+  onCapoChange?: (capo: number) => void;
   subtitle?: string;
   footer?: ReactNode;
   onEdit?: () => void;
   actions?: ReactNode;
 };
 
-export function SongScreen({ song, displayKey, onKeyChange, subtitle, footer, onEdit, actions }: Props) {
+export const MAX_CAPO = 11;
+
+export function SongScreen({ song, displayKey, onKeyChange, onCapoChange, subtitle, footer, onEdit, actions }: Props) {
   useWakeLock(true);
   const baseKey = song.originalKey || guessKey(song.body);
   const currentKey = displayKey || song.key || baseKey;
   const minor = currentKey ? isMinorKey(currentKey) : false;
+  const capo = Math.min(Math.max(Math.round(song.capo ?? 0), 0), MAX_CAPO);
+  // З каподастром на ладу N граємо акорди на N півтонів нижче: звучить та сама тональність.
+  const shapeKey = currentKey && capo > 0 ? shiftKey(currentKey, -capo) : currentKey;
 
   const doc = useMemo(() => {
     const parsed = parseChordPro(song.body);
-    if (!baseKey || !currentKey) return parsed;
-    const shift = semitonesBetween(baseKey, currentKey);
-    return shift === 0 ? parsed : transposeDoc(parsed, shift, keyPrefersFlats(currentKey));
-  }, [song.body, baseKey, currentKey]);
+    if (!baseKey || !currentKey || !shapeKey) return parsed;
+    const shift = semitonesBetween(baseKey, currentKey) - capo;
+    return shift === 0 ? parsed : transposeDoc(parsed, shift, keyPrefersFlats(shapeKey));
+  }, [song.body, baseKey, currentKey, shapeKey, capo]);
 
   return (
     <div className="song-screen">
@@ -77,7 +84,31 @@ export function SongScreen({ song, displayKey, onKeyChange, subtitle, footer, on
           </div>
         ) : null}
         <div className="pill">
-          Капо <b>{song.capo ?? 0}</b>
+          Капо
+          {onCapoChange && (
+            <button
+              type="button"
+              className="round"
+              aria-label="Капо нижче"
+              disabled={capo <= 0}
+              onClick={() => onCapoChange(capo - 1)}
+            >
+              −
+            </button>
+          )}
+          <b>{capo}</b>
+          {onCapoChange && (
+            <button
+              type="button"
+              className="round"
+              aria-label="Капо вище"
+              disabled={capo >= MAX_CAPO}
+              onClick={() => onCapoChange(capo + 1)}
+            >
+              +
+            </button>
+          )}
+          {capo > 0 && shapeKey && <span className="capo-shape">акорди як у {shapeKey}</span>}
         </div>
       </header>
       <SongView doc={doc} />

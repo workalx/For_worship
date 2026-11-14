@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { getSong, saveService, db, type Service, type Song } from '../db/db';
+import { getSong, saveService, saveSong, db, type Service, type Song } from '../db/db';
 import { SongScreen } from '../song/SongScreen';
 import { detectSwipe } from './swipe';
 import './Service.css';
@@ -65,6 +65,13 @@ export function ServicePlayer({ serviceId, index: startIndex, onExit, onSongShow
     void saveService(updated);
   };
 
+  const changeCapo = (capo: number) => {
+    if (!song) return;
+    void saveSong({ ...song, capo }).then((saved) => {
+      setSongs((list) => list.map((s) => (s?.id === saved.id ? saved : s)));
+    });
+  };
+
   const titleAt = (i: number) => songs[i]?.title ?? '—';
 
   const footer = (
@@ -107,6 +114,7 @@ export function ServicePlayer({ serviceId, index: startIndex, onExit, onSongShow
           song={song}
           displayKey={service.items[index].key}
           onKeyChange={changeKey}
+          onCapoChange={changeCapo}
           subtitle={`${service.title} · пісня ${index + 1} з ${total}`}
           footer={footer}
           actions={

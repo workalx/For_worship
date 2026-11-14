@@ -116,3 +116,23 @@ test('кнопка «📷 Фото» активна', async () => {
   render(<LibraryScreen onPlay={() => {}} />);
   expect(await screen.findByRole('button', { name: '📷 Фото' })).toBeEnabled();
 });
+
+test('🗑 на екрані пісні видаляє її після підтвердження', async () => {
+  const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+  render(<LibraryScreen onPlay={() => {}} />);
+  await userEvent.click(await screen.findByText('Великий Бог'));
+  await userEvent.click(await screen.findByRole('button', { name: 'Видалити пісню' }));
+  expect(await screen.findByText('Світло в темряві')).toBeInTheDocument();
+  expect(screen.queryByText('Великий Бог')).not.toBeInTheDocument();
+  expect(await db.songs.count()).toBe(1);
+  confirmSpy.mockRestore();
+});
+
+test('🗑 без підтвердження нічого не видаляє', async () => {
+  const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+  render(<LibraryScreen onPlay={() => {}} />);
+  await userEvent.click(await screen.findByText('Великий Бог'));
+  await userEvent.click(await screen.findByRole('button', { name: 'Видалити пісню' }));
+  expect(await db.songs.count()).toBe(2);
+  confirmSpy.mockRestore();
+});

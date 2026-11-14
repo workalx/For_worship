@@ -176,11 +176,25 @@ export function LibraryScreen({ onPlay, onSongShown, shared }: Props) {
           onKeyChange={(key) => {
             void saveSong({ ...viewSong, key }).then(setViewSong);
           }}
+          onCapoChange={(capo) => {
+            void saveSong({ ...viewSong, capo }).then(setViewSong);
+          }}
           onEdit={() => setMode({ kind: 'edit', song: viewSong })}
           actions={
             <>
               <button type="button" className="btn" onClick={() => void addToService(viewSong)}>
                 Додати в служіння
+              </button>
+              <button
+                type="button"
+                className="icon-btn"
+                aria-label="Видалити пісню"
+                onClick={() => {
+                  if (!confirm(`Видалити пісню «${viewSong.title}»?`)) return;
+                  void deleteSong(viewSong.id).then(() => setMode({ kind: 'list' }));
+                }}
+              >
+                🗑
               </button>
               <button type="button" className="icon-btn" aria-label="До списку пісень" onClick={() => setMode({ kind: 'list' })}>
                 ✕

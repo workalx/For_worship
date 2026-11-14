@@ -34,6 +34,42 @@ test('без originalKey тональність береться з першог
   expect(onKeyChange).toHaveBeenCalledWith('Db');
 });
 
+test('каподастр: F#m з капо 2 показує акорди Em, тональність лишається F#m', () => {
+  render(
+    <SongScreen
+      song={song({ originalKey: 'F#m', body: '[F#m]Слово [D]друге [A]третє [E]кінець', capo: 2 })}
+      onKeyChange={() => {}}
+    />,
+  );
+  expect(screen.getByText('Em', { selector: '.ch' })).toBeInTheDocument();
+  expect(screen.getByText('C', { selector: '.ch' })).toBeInTheDocument();
+  expect(screen.getByText('G', { selector: '.ch' })).toBeInTheDocument();
+  expect(screen.getByText('D', { selector: '.ch' })).toBeInTheDocument();
+  expect(screen.getByRole('combobox', { name: 'Тональність' })).toHaveValue('F#m');
+  expect(screen.getByText('акорди як у Em')).toBeInTheDocument();
+});
+
+test('каподастр враховує і змінену тональність', () => {
+  render(<SongScreen song={song({ capo: 3 })} displayKey="G" onKeyChange={() => {}} />);
+  expect(screen.getByText('E', { selector: '.ch' })).toBeInTheDocument();
+});
+
+test('кнопки каподастра: «+» і «−», не нижче 0', async () => {
+  const onCapoChange = vi.fn();
+  const { rerender } = render(<SongScreen song={song()} onKeyChange={() => {}} onCapoChange={onCapoChange} />);
+  expect(screen.getByRole('button', { name: 'Капо нижче' })).toBeDisabled();
+  await userEvent.click(screen.getByRole('button', { name: 'Капо вище' }));
+  expect(onCapoChange).toHaveBeenCalledWith(1);
+  rerender(<SongScreen song={song({ capo: 2 })} onKeyChange={() => {}} onCapoChange={onCapoChange} />);
+  await userEvent.click(screen.getByRole('button', { name: 'Капо нижче' }));
+  expect(onCapoChange).toHaveBeenLastCalledWith(1);
+});
+
+test('без onCapoChange кнопок каподастра немає', () => {
+  render(<SongScreen song={song()} onKeyChange={() => {}} />);
+  expect(screen.queryByRole('button', { name: 'Капо вище' })).not.toBeInTheDocument();
+});
+
 test('показує BPM, капо і підзаголовок', () => {
   render(<SongScreen song={song({ bpm: 72, capo: 2 })} subtitle="пісня 2 з 5" onKeyChange={() => {}} />);
   expect(screen.getByText('72')).toBeInTheDocument();
