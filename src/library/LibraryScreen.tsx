@@ -316,13 +316,26 @@ export function LibraryScreen({ onPlay, onSongShown, shared }: Props) {
           {songs.map((s) => {
             const key = s.key || s.originalKey || guessKey(s.body);
             return (
-              <button key={s.id} type="button" className="item" onClick={() => setMode({ kind: 'view', id: s.id })}>
-                <span className="key-badge">{key ?? '—'}</span>
-                <span className="grow">
-                  <div>{s.title}</div>
-                  <small>{[s.artist, s.bpm ? `${s.bpm} BPM` : ''].filter(Boolean).join(' · ')}</small>
-                </span>
-              </button>
+              <div key={s.id} className="item">
+                <button type="button" className="item-open" onClick={() => setMode({ kind: 'view', id: s.id })}>
+                  <span className="key-badge">{key ?? '—'}</span>
+                  <span className="grow">
+                    <div>{s.title}</div>
+                    <small>{[s.artist, s.bpm ? `${s.bpm} BPM` : ''].filter(Boolean).join(' · ')}</small>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className="icon-btn"
+                  aria-label={`Видалити «${s.title}»`}
+                  onClick={() => {
+                    if (!confirm(`Видалити пісню «${s.title}»?`)) return;
+                    void deleteSong(s.id).then(reload);
+                  }}
+                >
+                  🗑
+                </button>
+              </div>
             );
           })}
         </div>

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { LibraryScreen } from './LibraryScreen';
 import { db, saveSong, saveService, listServices } from '../db/db';
@@ -134,5 +134,25 @@ test('🗑 без підтвердження нічого не видаляє', 
   await userEvent.click(await screen.findByText('Великий Бог'));
   await userEvent.click(await screen.findByRole('button', { name: 'Видалити пісню' }));
   expect(await db.songs.count()).toBe(2);
+  confirmSpy.mockRestore();
+});
+
+test('🗑 у списку видаляє пісню, не відкриваючи її', async () => {
+  const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+  render(<LibraryScreen onPlay={() => {}} />);
+  await userEvent.click(await screen.findByRole('button', { name: 'Видалити «Великий Бог»' }));
+  await waitFor(() => expect(screen.queryByText('Великий Бог')).not.toBeInTheDocument());
+  expect(screen.getByText('Світло в темряві')).toBeInTheDocument();
+  expect(screen.getByLabelText('Пошук пісні')).toBeInTheDocument();
+  expect(await db.songs.count()).toBe(1);
+  confirmSpy.mockRestore();
+});
+
+test('🗑 у списку без підтвердження нічого не видаляє', async () => {
+  const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+  render(<LibraryScreen onPlay={() => {}} />);
+  await userEvent.click(await screen.findByRole('button', { name: 'Видалити «Великий Бог»' }));
+  expect(await db.songs.count()).toBe(2);
+  expect(screen.getByText('Великий Бог')).toBeInTheDocument();
   confirmSpy.mockRestore();
 });
