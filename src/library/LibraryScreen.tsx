@@ -4,6 +4,7 @@ import { guessKey } from '../music/chordpro';
 import { SongScreen } from '../song/SongScreen';
 import { nextSunday } from '../service/swipe';
 import { SongEditor } from './SongEditor';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { OnlineSearch } from './OnlineSearch';
 import { PhotoImport } from './PhotoImport';
 import { normalizeImportedText, songFromPastedText } from './importText';
@@ -76,6 +77,7 @@ export function LibraryScreen({ onPlay, onSongShown, shared }: Props) {
     shared?.kind === 'url' && hasGeminiKey() ? { query: shared.url, nonce: 1 } : null,
   );
   const [browserHint, setBrowserHint] = useState(false);
+  const [toDelete, setToDelete] = useState<{ id: string; title: string } | null>(null);
   const searchCache = useRef(new Map<string, SongCandidate[]>());
   const [aiError, setAiError] = useState<AiError | null>(null);
 
@@ -117,6 +119,18 @@ export function LibraryScreen({ onPlay, onSongShown, shared }: Props) {
     setToast(`Додано в «${updated.title}»`);
   };
 
+  const confirmDelete = async () => {
+    if (!toDelete) return;
+    const { id } = toDelete;
+    await deleteSong(id);
+    setToDelete(null);
+    // Прибираємо рядок одразу, не чекаючи перечитування бази.
+    setSongs((list) => list.filter((x) => x.id !== id));
+    setAllSongs((list) => list.filter((x) => x.id !== id));
+    if (mode.kind === 'list') await reload();
+    else setMode({ kind: 'list' });
+  };
+
   const searchInBrowser = (q: string) => {
     setAiError(null);
     setOnline(null);
@@ -154,15 +168,18 @@ export function LibraryScreen({ onPlay, onSongShown, shared }: Props) {
           onCancel={() => setMode(editing?.id ? { kind: 'view', id: editing.id } : { kind: 'list' })}
           onDelete={
             editing?.id
-              ? async () => {
-                  if (!confirm(`Видалити пісню «${editing.title}»?`)) return;
-                  await deleteSong(editing.id!);
-                  setMode({ kind: 'list' });
-                }
+              ? () => setToDelete({ id: editing.id!, title: editing.title ?? '' })
               : undefined
           }
         />
         {toast && <div className="toast">{toast}</div>}
+        {toDelete && (
+          <ConfirmDialog
+            message={`Видалити пісню «${toDelete.title}»?`}
+            onCancel={() => setToDelete(null)}
+            onConfirm={() => void confirmDelete()}
+          />
+        )}
       </>
     );
   }
@@ -189,10 +206,7 @@ export function LibraryScreen({ onPlay, onSongShown, shared }: Props) {
                 type="button"
                 className="icon-btn"
                 aria-label="Видалити пісню"
-                onClick={() => {
-                  if (!confirm(`Видалити пісню «${viewSong.title}»?`)) return;
-                  void deleteSong(viewSong.id).then(() => setMode({ kind: 'list' }));
-                }}
+                onClick={() => setToDelete({ id: viewSong.id, title: viewSong.title })}
               >
                 🗑
               </button>
@@ -203,6 +217,13 @@ export function LibraryScreen({ onPlay, onSongShown, shared }: Props) {
           }
         />
         {toast && <div className="toast">{toast}</div>}
+        {toDelete && (
+          <ConfirmDialog
+            message={`Видалити пісню «${toDelete.title}»?`}
+            onCancel={() => setToDelete(null)}
+            onConfirm={() => void confirmDelete()}
+          />
+        )}
       </>
     );
   }
@@ -328,10 +349,7 @@ export function LibraryScreen({ onPlay, onSongShown, shared }: Props) {
                   type="button"
                   className="icon-btn"
                   aria-label={`Видалити «${s.title}»`}
-                  onClick={() => {
-                    if (!confirm(`Видалити пісню «${s.title}»?`)) return;
-                    void deleteSong(s.id).then(reload);
-                  }}
+                  onClick={() => setToDelete({ id: s.id, title: s.title })}
                 >
                   🗑
                 </button>
@@ -373,6 +391,13 @@ export function LibraryScreen({ onPlay, onSongShown, shared }: Props) {
         </div>
       </div>
       {toast && <div className="toast">{toast}</div>}
+      {toDelete && (
+        <ConfirmDialog
+          message={`Видалити пісню «${toDelete.title}»?`}
+          onCancel={() => setToDelete(null)}
+          onConfirm={() => void confirmDelete()}
+        />
+      )}
     </div>
   );
 }

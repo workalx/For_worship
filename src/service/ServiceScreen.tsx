@@ -3,6 +3,7 @@ import { deleteService, listServices, listSongs, saveService, type Service, type
 import { ALL_KEYS, isMinorKey } from '../music/chords';
 import { guessKey } from '../music/chordpro';
 import { nextSunday } from './swipe';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import './Service.css';
 
 function formatDate(iso: string): string {
@@ -19,6 +20,7 @@ export function ServiceScreen({ onPlay }: { onPlay: (serviceId: string, index: n
   const [newTitle, setNewTitle] = useState('Неділя');
   const [newDate, setNewDate] = useState(nextSunday());
   const [pick, setPick] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const reload = useCallback(async () => {
     const [sv, sg] = await Promise.all([listServices(), listSongs()]);
@@ -121,12 +123,7 @@ export function ServiceScreen({ onPlay }: { onPlay: (serviceId: string, index: n
                 <button
                   type="button"
                   className="btn"
-                  onClick={async () => {
-                    if (!confirm(`Видалити служіння «${selected.title}»?`)) return;
-                    await deleteService(selected.id);
-                    setSelectedId(null);
-                    await reload();
-                  }}
+                  onClick={() => setConfirmDelete(true)}
                 >
                   Видалити
                 </button>
@@ -215,6 +212,18 @@ export function ServiceScreen({ onPlay }: { onPlay: (serviceId: string, index: n
           </>
         )}
       </div>
+      {confirmDelete && selected && (
+        <ConfirmDialog
+          message={`Видалити служіння «${selected.title}»?`}
+          onCancel={() => setConfirmDelete(false)}
+          onConfirm={async () => {
+            setConfirmDelete(false);
+            await deleteService(selected.id);
+            setSelectedId(null);
+            await reload();
+          }}
+        />
+      )}
     </div>
   );
 }
