@@ -10,8 +10,13 @@ export type LibraryIndexEntry = {
   key: string;
   tags: string[];
   chordsOrigin: ChordsOrigin;
-  /** Файл частини з повною піснею: public/library/songs-<chunk>.json. */
+  /**
+   * Файл частини з повною піснею: public/library/songs-<chunk>.json. Назва містить хеш вмісту
+   * («a-1f2e3d4c»), тож змінена частина — це новий файл і кеш ніколи не віддасть застарілу.
+   */
   chunk: string;
+  /** Унікальні слова тексту (без назви й першого рядка), нормалізовані — для пошуку за фрагментом. */
+  words: string;
   /** Назва мелодії (якщо в гімну їх кілька). */
   tune?: string;
 };

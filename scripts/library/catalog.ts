@@ -3,7 +3,9 @@
  * індекс для пошуку й частини з повними піснями (за першою літерою назви).
  * Формат результату описано в типах LibraryIndex / LibraryChunk (їх же читає застосунок).
  */
+import { createHash } from 'node:crypto';
 import { parseAbc, type AbcTune } from './abc';
+import { distinctWords } from '../../src/library/searchText';
 import { abcToChordPro } from './abcToChordPro';
 import type { LibraryChunk, LibraryIndex, LibraryIndexEntry, LibrarySong } from '../../src/library/catalogTypes';
 
@@ -128,15 +130,17 @@ export function buildCatalog(files: SourceFile[]): Catalog {
       license: 'public domain',
       chordsOrigin: 'auto',
     };
+    const firstLine = firstLineOf(converted.body);
     const entry: LibraryIndexEntry = {
       id,
       title: converted.title,
-      firstLine: firstLineOf(converted.body),
+      firstLine,
       author: converted.artist,
       key: converted.key,
       tags: tagsOf(tune),
       chordsOrigin: 'auto',
       chunk: '',
+      words: distinctWords(converted.body, [converted.title, firstLine]),
       tune: tuneName(f.path),
     };
     songs.push({ entry, song });
@@ -152,13 +156,21 @@ export function buildCatalog(files: SourceFile[]): Catalog {
     }
   }
 
-  const chunks = new Map<string, LibraryChunk>();
+  const byKey = new Map<string, { chunk: LibraryChunk; entries: LibraryIndexEntry[] }>();
   for (const s of songs) {
     const key = chunkKey(s.entry.title);
-    s.entry.chunk = key;
-    const chunk = chunks.get(key) ?? { version: 1, songs: {} };
-    chunk.songs[s.entry.id] = s.song;
-    chunks.set(key, chunk);
+    const group = byKey.get(key) ?? { chunk: { version: 1, songs: {} }, entries: [] };
+    group.chunk.songs[s.entry.id] = s.song;
+    group.entries.push(s.entry);
+    byKey.set(key, group);
+  }
+  // Назва частини = літера + хеш вмісту: змінена частина отримує нову адресу.
+  const chunks = new Map<string, LibraryChunk>();
+  for (const [key, group] of byKey) {
+    const hash = createHash('sha256').update(JSON.stringify(group.chunk)).digest('hex').slice(0, 8);
+    const name = `${key}-${hash}`;
+    for (const e of group.entries) e.chunk = name;
+    chunks.set(name, group.chunk);
   }
   const entries = songs.map((s) => s.entry).sort((a, b) => a.title.localeCompare(b.title, 'en'));
   const index: LibraryIndex = {

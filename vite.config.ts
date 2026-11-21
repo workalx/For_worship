@@ -34,9 +34,21 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,png,svg,ico,woff2}'],
+        // Індекс бібліотеки пісень — в офлайн-кеші з моменту встановлення (пошук без мережі).
+        globPatterns: ['**/*.{js,css,html,png,svg,ico,woff2}', 'library/index.json'],
         navigateFallback: 'index.html',
         runtimeCaching: [
+          {
+            // Частини з повними піснями кешуються при першому відкритті. Назва містить хеш вмісту,
+            // тож кеш ніколи не застаріває; старі версії витісняються.
+            urlPattern: ({ url }) => /\/library\/songs-[^/]+\.json$/.test(url.pathname),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'fw-library-songs',
+              expiration: { maxEntries: 80 },
+              cacheableResponse: { statuses: [200] },
+            },
+          },
           {
             urlPattern: ({ url }) => url.hostname === 'generativelanguage.googleapis.com',
             handler: 'NetworkOnly',

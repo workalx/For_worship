@@ -76,10 +76,13 @@ describe('buildCatalog', () => {
       author: 'John Newton',
       key: 'G',
       chordsOrigin: 'auto',
-      chunk: 'a',
     });
+    expect(entry.chunk).toMatch(/^a-[0-9a-f]{8}$/);
     expect(entry.tags.length).toBeGreaterThan(0);
-    const song = catalog.chunks.get('a')!.songs[entry.id];
+    // Слова тексту без тих, що вже є в назві й першому рядку.
+    expect(entry.words.split(' ')).toEqual(expect.arrayContaining(['wretch', 'saved', 'twas', 'snow']));
+    expect(entry.words.split(' ')).not.toContain('amazing');
+    const song = catalog.chunks.get(entry.chunk)!.songs[entry.id];
     expect(song).toMatchObject({
       source: 'Open Hymnal Project',
       license: 'public domain',
