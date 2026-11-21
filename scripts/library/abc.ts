@@ -124,6 +124,8 @@ export function parseAbc(text: string): AbcTune {
   let melodyId: string | null = null;
   let lastMelodyLine = -1;
   let extra: string[] = [];
+  /** Тіло мелодії починається після K:; до того рядки без поля (PostScript тощо) ігноруються. */
+  let inBody = false;
 
   const voiceState = (id: string): VoiceState => {
     let st = states.get(id);
@@ -153,7 +155,11 @@ export function parseAbc(text: string): AbcTune {
       if (m) tune.meta[m[1]] = m[2].trim();
       continue;
     }
-    if (line.startsWith('%') || line.trim() === '') continue;
+    if (line.trim() === '') {
+      if (inBody) break; // порожній рядок завершує мелодію (ABC 2.1); далі — пояснення тощо
+      continue;
+    }
+    if (line.startsWith('%')) continue;
 
     const field = /^([A-Za-z]):\s?(.*)$/.exec(line);
     if (field && !line.startsWith('[')) {
@@ -186,6 +192,7 @@ export function parseAbc(text: string): AbcTune {
           const k = parseKey(value);
           keyAcc = k.accidentals;
           tune.key = k.name;
+          inBody = true;
           break;
         }
         case 'V': {
@@ -217,9 +224,11 @@ export function parseAbc(text: string): AbcTune {
       continue;
     }
 
-    // Музичний рядок. Може починатися з [V: id].
+    // Музичний рядок. Може починатися з [V: id]. Рядок без голосу й без тактової риски — не ноти.
+    if (!inBody) continue;
     let body = line;
     const v = /^\s*\[V:\s*([^\]\s]+)[^\]]*\]/.exec(body);
+    if (!v && !body.includes('|')) continue;
     if (v) {
       current = voiceState(v[1]);
       body = body.slice(v[0].length);

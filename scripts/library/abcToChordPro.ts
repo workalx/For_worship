@@ -243,9 +243,26 @@ export function abcToChordPro(
   });
   const bars = melody.barStarts.filter((t, i, a) => i === 0 || t > a[i - 1] + 1e-9).length;
   const warnings: string[] = [];
-  const ends = tune.voices.map((v) => v.end);
-  if (Math.max(...ends) - Math.min(...ends) > 1e-6) warnings.push(`голоси різної довжини: ${ends.map((e) => e.toFixed(3)).join(', ')}`);
-  if (tune.voices.length < 3) warnings.push(`голосів лише ${tune.voices.length}`);
+  // Порожні голоси (лише паузи) не рахуємо. Голос може закінчитися раніше за мелодію,
+  // але його такти мають збігатися з тактами мелодії, інакше розбір зсунувся.
+  const voices = tune.voices.filter((v) => v.notes.length > 0);
+  // Порівнюємо моменти тактових рисок (подвійна риска чи риска на початку рядка не дає «зайвого» такту).
+  const barTimes = (v: typeof melody) => v.barStarts.filter((t, i, a) => i === 0 || t > a[i - 1] + 1e-9);
+  const melodyBars = barTimes(melody);
+  for (const v of voices) {
+    if (v === melody) continue;
+    if (v.end > melody.end + 1e-6) warnings.push(`голос ${v.id} довший за мелодію`);
+    const own = barTimes(v);
+    const n = Math.min(own.length, melodyBars.length);
+    for (let i = 0; i < n; i++) {
+      if (Math.abs(own[i] - melodyBars[i]) > 1e-6) {
+        warnings.push(`такти голосу ${v.id} не збігаються з мелодією (такт ${i})`);
+        break;
+      }
+    }
+  }
+  const voiceParts = voices.reduce((sum, v) => sum + Math.max(...v.notes.map((x) => x.pitches.length)), 0);
+  if (voiceParts < 3) warnings.push(`голосів лише ${voiceParts}`);
   if (verses === 0) warnings.push('немає слів під нотами (w:)');
   return {
     title,
