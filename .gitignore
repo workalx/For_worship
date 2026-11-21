@@ -3,3 +3,7 @@ dist
 .superpowers/
 *.local
 *.tsbuildinfo
+
+# Скрипти бібліотеки: завантажене джерело й проміжні результати
+scripts/.cache/
+scripts/out/
