@@ -58,6 +58,9 @@ export function SongEditor({ initial, onSave, onCancel, onDelete }: Props) {
       timeSig,
       capo: capoNum > 0 ? Math.round(capoNum) : undefined,
       source: initial?.source,
+      sourceUrl: initial?.sourceUrl,
+      license: initial?.license,
+      chordsOrigin: initial?.chordsOrigin,
     });
     onSave(song);
   };

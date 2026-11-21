@@ -29,7 +29,7 @@ function candidateToSong(c: SongCandidate): Partial<Song> {
     body: normalizeImportedText(c.body),
     originalKey: c.key,
     bpm: c.bpm,
-    source: c.source,
+    ...(c.source && /^https?:\/\//i.test(c.source) ? { sourceUrl: c.source } : { source: c.source }),
   };
 }
 

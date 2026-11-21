@@ -1,4 +1,5 @@
-import { db, requestPersistentStorage, saveSong, getSong, listSongs, deleteSong, saveService, listServices, deleteService } from './db';
+import Dexie from 'dexie';
+import { db, WorshipDb, normalizeStoredSong, requestPersistentStorage, saveSong, getSong, listSongs, deleteSong, saveService, listServices, deleteService } from './db';
 import { exportAll, importAll } from './backup';
 
 beforeEach(async () => {
@@ -72,4 +73,63 @@ test('просить браузер не видаляти базу (persist)', a
   expect(persist).toHaveBeenCalled();
   Object.defineProperty(navigator, 'storage', { configurable: true, value: undefined });
   expect(await requestPersistentStorage()).toBe(false);
+});
+
+describe('схема версії 2', () => {
+  test('міграція з версії 1 переносить адресу з source у sourceUrl і зберігає решту', async () => {
+    const name = 'migration-test-' + Math.random();
+    const old = new Dexie(name);
+    old.version(1).stores({ songs: 'id, title, updatedAt', services: 'id, date' });
+    await old.table('songs').bulkPut([
+      { id: 'a', title: 'З сайту', body: '[G]x', source: 'https://example.com/song', capo: 2, createdAt: 1, updatedAt: 2 },
+      { id: 'b', title: 'З фото', body: '[C]y', source: 'фото', createdAt: 1, updatedAt: 2 },
+    ]);
+    await old.table('services').put({ id: 's', title: 'Неділя', date: '2026-01-04', items: [{ songId: 'a', key: 'A' }] });
+    old.close();
+
+    const fresh = new WorshipDb(name);
+    const a = await fresh.songs.get('a');
+    const b = await fresh.songs.get('b');
+    expect(a).toMatchObject({ title: 'З сайту', sourceUrl: 'https://example.com/song', capo: 2, createdAt: 1, updatedAt: 2 });
+    expect(a).not.toHaveProperty('source');
+    expect(b).toMatchObject({ source: 'фото' });
+    expect(b).not.toHaveProperty('sourceUrl');
+    expect((await fresh.services.get('s'))?.items).toEqual([{ songId: 'a', key: 'A' }]);
+    expect(fresh.verno).toBe(2);
+    fresh.close();
+    await Dexie.delete(name);
+  });
+
+  test('нові поля зберігаються й читаються', async () => {
+    const s = await saveSong({ ...base, source: 'Open Hymnal Project', sourceUrl: 'https://x/y.abc', license: 'public domain', chordsOrigin: 'auto' });
+    expect(await getSong(s.id)).toMatchObject({ license: 'public domain', chordsOrigin: 'auto', sourceUrl: 'https://x/y.abc' });
+  });
+
+  test('normalizeStoredSong прибирає невідоме chordsOrigin і не чіпає назву джерела', () => {
+    expect(normalizeStoredSong({ source: 'фото', chordsOrigin: 'weird' as never })).toEqual({ source: 'фото' });
+    expect(normalizeStoredSong({ source: ' https://a.b/c ', sourceUrl: 'https://keep' })).toEqual({ sourceUrl: 'https://keep' });
+  });
+});
+
+describe('сумісність резервної копії', () => {
+  test('стара копія версії 1 (адреса в source) відновлюється в новій схемі', async () => {
+    const backupV1 = JSON.stringify({
+      version: 1,
+      songs: [{ id: 'old', title: 'Стара', body: '[D]z', source: 'https://example.com/old', createdAt: 5, updatedAt: 6 }],
+      services: [{ id: 'sv', title: 'Неділя', date: '2026-02-01', items: [{ songId: 'old' }] }],
+    });
+    expect(await importAll(backupV1)).toEqual({ songs: 1, services: 1 });
+    const s = await getSong('old');
+    expect(s).toMatchObject({ title: 'Стара', sourceUrl: 'https://example.com/old', createdAt: 5 });
+    expect(s).not.toHaveProperty('source');
+  });
+
+  test('копія з новими полями проходить коло експорт → імпорт без втрат', async () => {
+    const s = await saveSong({ ...base, license: 'public domain', chordsOrigin: 'auto', source: 'Open Hymnal Project' });
+    const json = await exportAll();
+    expect(JSON.parse(json).version).toBe(1);
+    await db.songs.clear();
+    await importAll(json);
+    expect(await getSong(s.id)).toEqual(s);
+  });
 });
