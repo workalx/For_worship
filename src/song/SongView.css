@@ -15,6 +15,9 @@
   break-inside: avoid;
   margin-bottom: 0.7em;
 }
+/* Якщо цілими частинами не влазить — частину можна розірвати між колонками, але не рядок з акордами. */
+.song-columns.split .song-section { break-inside: auto; }
+.song-head, .song-line { break-inside: avoid; }
 .song-label {
   font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
   font-size: 0.62em;
@@ -27,6 +30,8 @@
 .song-line { white-space: pre; margin-bottom: 0.18em; }
 .song-line .seg { display: inline-flex; flex-direction: column; vertical-align: bottom; }
 .song-line .ch { color: var(--chord); font-weight: 700; padding-right: 0.6ch; }
+/* Початок рядка без акорду: без відступу, щоб слово не розривалось. */
+.song-line .ch.none { padding-right: 0; }
 .song-line .ly { white-space: pre; }
 .song-line.chords-only { display: flex; gap: 1.6ch; }
 .song-line.chords-only .ch { padding-right: 0; }

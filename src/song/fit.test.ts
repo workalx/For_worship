@@ -27,6 +27,22 @@ describe('chooseLayout', () => {
   test('однаково — перевага одній колонці', () => {
     expect(chooseLayout((_c, px) => px <= 20)).toEqual({ cols: 1, px: 20, overflow: false });
   });
+  test('у дві колонки на 14 не влазить, на 12 влазить — дві колонки дрібнішим шрифтом, без прокрутки', () => {
+    expect(chooseLayout((cols, px) => cols === 2 && px <= 12)).toEqual({ cols: 2, px: 12, overflow: false });
+  });
+  test('довга пісня з короткими рядками — три колонки замість прокрутки', () => {
+    expect(chooseLayout((cols, px) => cols === 3 && px <= 16)).toEqual({ cols: 3, px: 16, overflow: false });
+  });
+  test('три колонки лише коли шрифт більший, ніж у двох', () => {
+    expect(chooseLayout((cols, px) => cols >= 2 && px <= 13)).toEqual({ cols: 2, px: 13, overflow: false });
+  });
+  test('поки влазить у дві колонки зручним шрифтом — три не розглядаються', () => {
+    expect(chooseLayout((cols, px) => (cols === 2 ? px <= 15 : cols === 3 ? px <= 24 : false))).toEqual({
+      cols: 2,
+      px: 15,
+      overflow: false,
+    });
+  });
   test('не влазить ніяк — одна колонка з прокруткою', () => {
     expect(chooseLayout(() => false)).toEqual({ cols: 1, px: 14, overflow: true });
   });

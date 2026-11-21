@@ -18,18 +18,39 @@ export function fitFontSize(
   return { px: lo, overflow: false };
 }
 
-export type Layout = { cols: 1 | 2; px: number; overflow: boolean };
+export type Cols = 1 | 2 | 3;
+export type Layout = { cols: Cols; px: number; overflow: boolean };
+
+/** Найменший шрифт, до якого стискаємо пісню, аби лише не вмикати прокрутку. */
+export const HARD_MIN_PX = 12;
 
 /**
- * Пробує одну й дві колонки та бере ту, де шрифт більший (при рівності — одну колонку).
- * Якщо не влазить ніяк — одна колонка з прокруткою (читати зверху вниз зручніше).
+ * 1. Пробує одну й дві колонки зі зручним шрифтом (від min) і бере ту, де шрифт більший
+ *    (при рівності — одну колонку).
+ * 2. Якщо так не влазить — щоб уникнути прокрутки, пробує три колонки, а також одну й дві
+ *    з дрібнішим шрифтом (до hardMin); бере найбільший шрифт (при рівності — менше колонок).
+ * 3. Якщо не влазить ніяк — одна колонка з прокруткою (читати зверху вниз зручніше).
  */
-export function chooseLayout(fitsAt: (cols: 1 | 2, px: number) => boolean, max = 28, min = 14): Layout {
+export function chooseLayout(
+  fitsAt: (cols: Cols, px: number) => boolean,
+  max = 28,
+  min = 14,
+  hardMin = HARD_MIN_PX,
+): Layout {
   const one = fitFontSize((px) => fitsAt(1, px), max, min);
   const two = fitFontSize((px) => fitsAt(2, px), max, min);
-  if (one.overflow && two.overflow) return { cols: 1, px: min, overflow: true };
   if (!two.overflow && (one.overflow || two.px > one.px)) return { cols: 2, ...two };
-  return { cols: 1, ...one };
+  if (!one.overflow) return { cols: 1, ...one };
+
+  const low = Math.min(hardMin, min);
+  const tight: Layout[] = [
+    { cols: 1, ...fitFontSize((px) => fitsAt(1, px), min, low) },
+    { cols: 2, ...fitFontSize((px) => fitsAt(2, px), min, low) },
+    { cols: 3, ...fitFontSize((px) => fitsAt(3, px), max, low) },
+  ];
+  let best: Layout | null = null;
+  for (const c of tight) if (!c.overflow && (!best || c.px > best.px)) best = c;
+  return best ?? { cols: 1, px: min, overflow: true };
 }
 
 /** Чи влазить текст: висота без відступів контейнера і найширший рядок не ширший за колонку. */
