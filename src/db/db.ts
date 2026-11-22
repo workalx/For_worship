@@ -23,6 +23,8 @@ export type Song = {
   license?: string;
   /** Звідки акорди: 'auto' — згенеровані програмою, 'manual' — з джерела або від користувача. */
   chordsOrigin?: ChordsOrigin;
+  /** id пісні у вбудованій бібліотеці, якщо пісню додано звідти (щоб не додати двічі). */
+  libraryId?: string;
   createdAt: number;
   updatedAt: number;
 };

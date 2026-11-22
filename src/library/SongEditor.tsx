@@ -15,6 +15,24 @@ type Props = {
 
 const KEY_OPTIONS = [...ALL_KEYS, ...ALL_KEYS.map((k) => `${k}m`)];
 
+/** Послідовність акордів тексту — щоб відрізнити правку акордів від правки слів. */
+function chordSequence(body: string): string {
+  return [...body.matchAll(/\[([^\]]+)\]/g)].map((m) => m[1]).join(' ');
+}
+
+/**
+ * Автоакорди, які користувач виправив, — уже не автоматичні: позначка «автоакорди» знімається.
+ * Правка лише слів позначку лишає.
+ */
+export function chordsOriginAfterEdit(
+  origin: Song['chordsOrigin'],
+  before: string | undefined,
+  after: string,
+): Song['chordsOrigin'] {
+  if (origin !== 'auto' || before === undefined) return origin;
+  return chordSequence(normalizeImportedText(before)) === chordSequence(after) ? 'auto' : 'manual';
+}
+
 export function SongEditor({ initial, onSave, onCancel, onDelete }: Props) {
   const [title, setTitle] = useState(initial?.title ?? '');
   const [artist, setArtist] = useState(initial?.artist ?? '');
@@ -60,7 +78,8 @@ export function SongEditor({ initial, onSave, onCancel, onDelete }: Props) {
       source: initial?.source,
       sourceUrl: initial?.sourceUrl,
       license: initial?.license,
-      chordsOrigin: initial?.chordsOrigin,
+      chordsOrigin: chordsOriginAfterEdit(initial?.chordsOrigin, initial?.body, finalBody),
+      libraryId: initial?.libraryId,
     });
     onSave(song);
   };

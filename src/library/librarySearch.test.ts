@@ -114,6 +114,7 @@ describe('завантаження бібліотеки', () => {
       sourceUrl: 'https://x/a.abc',
       license: 'public domain',
       chordsOrigin: 'auto',
+      libraryId: 'ag',
     });
   });
 });

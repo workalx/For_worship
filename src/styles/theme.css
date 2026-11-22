@@ -51,6 +51,11 @@ input, textarea, select { font: inherit; color: inherit; user-select: text; }
   display: flex; align-items: center; justify-content: center; font-weight: 700; padding: 0;
 }
 .pill .round:disabled { opacity: 0.35; }
+.badge-auto {
+  display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px; vertical-align: middle;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.02em; color: var(--section);
+  border: 1px solid color-mix(in srgb, var(--section) 55%, transparent);
+}
 .pill .capo-shape { color: var(--muted); font-size: 12px; }
 .placeholder-screen { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--muted); }
 .error-text { color: var(--danger); }

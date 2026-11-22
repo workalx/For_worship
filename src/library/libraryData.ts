@@ -68,5 +68,6 @@ export function librarySongToInput(song: LibrarySong): SongInput {
     sourceUrl: song.sourceUrl,
     license: song.license,
     chordsOrigin: song.chordsOrigin,
+    libraryId: song.id,
   };
 }

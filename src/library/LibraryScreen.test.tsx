@@ -39,7 +39,7 @@ test('пошук в інтернеті без ключа відкриває по
   localStorage.clear();
   const open = vi.spyOn(window, 'open').mockImplementation(() => null);
   render(<LibraryScreen onPlay={() => {}} />);
-  const online = await screen.findByRole('button', { name: '🔍 В інтернеті' });
+  const online = await screen.findByRole('button', { name: '🔍 Шукати в інтернеті' });
   expect(online).toBeDisabled();
   await userEvent.type(screen.getByLabelText('Пошук пісні'), 'Свята любов');
   await userEvent.click(online);
