@@ -5,6 +5,8 @@ import { guessKey } from '../music/chordpro';
 import { nextSunday } from './swipe';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import './Service.css';
+import { Icon } from '../components/Icon';
+import { ChevronDown, ChevronUp, Play, Plus, X } from 'lucide-react';
 
 function formatDate(iso: string): string {
   const [y, m, d] = iso.split('-').map(Number);
@@ -63,7 +65,8 @@ export function ServiceScreen({ onPlay }: { onPlay: (serviceId: string, index: n
         <div className="row" style={{ justifyContent: 'space-between' }}>
           <h3>Служіння</h3>
           <button type="button" className="btn" onClick={() => setCreating(true)}>
-            + Нове служіння
+            <Icon as={Plus} />
+            Нове служіння
           </button>
         </div>
         {creating && (
@@ -133,7 +136,8 @@ export function ServiceScreen({ onPlay }: { onPlay: (serviceId: string, index: n
                   disabled={selected.items.length === 0}
                   onClick={() => onPlay(selected.id, 0)}
                 >
-                  ▶ Почати
+                  <Icon as={Play} />
+                  Почати
                 </button>
               </div>
             </div>
@@ -172,10 +176,10 @@ export function ServiceScreen({ onPlay }: { onPlay: (serviceId: string, index: n
                     </select>
                   )}
                   <button type="button" className="mini" aria-label="Вище" disabled={i === 0} onClick={() => move(i, -1)}>
-                    ↑
+                    <Icon as={ChevronUp} />
                   </button>
                   <button type="button" className="mini" aria-label="Нижче" disabled={i === selected.items.length - 1} onClick={() => move(i, 1)}>
-                    ↓
+                    <Icon as={ChevronDown} />
                   </button>
                   <button
                     type="button"
@@ -183,7 +187,7 @@ export function ServiceScreen({ onPlay }: { onPlay: (serviceId: string, index: n
                     aria-label="Прибрати"
                     onClick={() => void update({ ...selected, items: selected.items.filter((_, j) => j !== i) })}
                   >
-                    ✕
+                    <Icon as={X} />
                   </button>
                 </div>
               );

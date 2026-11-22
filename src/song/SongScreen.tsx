@@ -4,6 +4,8 @@ import { ALL_KEYS, isMinorKey, keyPrefersFlats, semitonesBetween, shiftKey } fro
 import { guessKey, parseChordPro, transposeDoc } from '../music/chordpro';
 import { useWakeLock } from '../hooks/useWakeLock';
 import { SongView } from './SongView';
+import { Icon } from '../components/Icon';
+import { Metronome, Minus, Pencil, Plus } from 'lucide-react';
 import './SongScreen.css';
 
 type Props = {
@@ -41,13 +43,13 @@ export function SongScreen({ song, displayKey, onKeyChange, onCapoChange, subtit
       <header className="topbar">
         {onEdit && (
           <button type="button" className="icon-btn" aria-label="Редагувати" onClick={onEdit}>
-            ✎
+            <Icon as={Pencil} />
           </button>
         )}
         <div className="topbar-title">
           {song.title}
           {song.chordsOrigin === 'auto' && (
-            <span className="badge-auto" title="Акорди визначено автоматично з нот і можуть бути неточними. Виправити — ✎">
+            <span className="badge-auto" title="Акорди визначено автоматично з нот і можуть бути неточними. Виправити — кнопка редагування">
               автоакорди
             </span>
           )}
@@ -76,16 +78,17 @@ export function SongScreen({ song, displayKey, onKeyChange, onCapoChange, subtit
               )}
             </select>
             <button type="button" className="round" aria-label="Тон нижче" onClick={() => onKeyChange(shiftKey(currentKey, -1))}>
-              −
+              <Icon as={Minus} />
             </button>
             <button type="button" className="round" aria-label="Тон вище" onClick={() => onKeyChange(shiftKey(currentKey, 1))}>
-              +
+              <Icon as={Plus} />
             </button>
           </div>
         )}
         {song.bpm ? (
           <div className="pill">
-            ♩ <b>{song.bpm}</b> BPM
+            <Icon as={Metronome} size={16} />
+            <b>{song.bpm}</b> BPM
           </div>
         ) : null}
         <div className="pill">
@@ -98,7 +101,7 @@ export function SongScreen({ song, displayKey, onKeyChange, onCapoChange, subtit
               disabled={capo <= 0}
               onClick={() => onCapoChange(capo - 1)}
             >
-              −
+              <Icon as={Minus} />
             </button>
           )}
           <b>{capo}</b>
@@ -110,7 +113,7 @@ export function SongScreen({ song, displayKey, onKeyChange, onCapoChange, subtit
               disabled={capo >= MAX_CAPO}
               onClick={() => onCapoChange(capo + 1)}
             >
-              +
+              <Icon as={Plus} />
             </button>
           )}
           {capo > 0 && shapeKey && <span className="capo-shape">акорди як у {shapeKey}</span>}

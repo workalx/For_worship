@@ -17,8 +17,8 @@ export default defineConfig({
         lang: 'uk',
         display: 'fullscreen',
         orientation: 'landscape',
-        background_color: '#0f1012',
-        theme_color: '#0f1012',
+        background_color: '#06070a',
+        theme_color: '#06070a',
         start_url: '.',
         scope: '.',
         // Android: виділити текст у браузері → «Поділитися» → For Worship.

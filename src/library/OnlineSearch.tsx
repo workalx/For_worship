@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { getProvider } from '../ai/getProvider';
 import { AiError, type AiProvider, type SongCandidate } from '../ai/provider';
+import { Icon } from '../components/Icon';
+import { Plus } from 'lucide-react';
 
 type Props = {
   query: string;
@@ -92,7 +94,8 @@ export function OnlineSearch({ query, provider, onPick, onManual, onSettings, ca
             <small>{[c.artist, hostOf(c.source), c.bpm ? `${c.bpm} BPM` : ''].filter(Boolean).join(' · ')}</small>
           </span>
           <button type="button" className="btn blue" onClick={() => onPick(c)}>
-            + Додати
+            <Icon as={Plus} />
+            Додати
           </button>
         </div>
       ))}

@@ -4,6 +4,8 @@ import { exportAll, importAll } from '../db/backup';
 import { DEFAULT_PHOTO_MODEL, DEFAULT_SEARCH_MODEL, loadSettings, saveSettings } from './settings';
 import { SEARCH_ENGINES, type SearchEngine } from '../library/webSearch';
 import './Settings.css';
+import { Icon } from '../components/Icon';
+import { X } from 'lucide-react';
 
 function today(): string {
   const d = new Date();
@@ -66,7 +68,7 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
       <header className="topbar">
         <div className="topbar-title">Налаштування</div>
         <button type="button" className="icon-btn" aria-label="Закрити налаштування" onClick={onClose}>
-          ✕
+          <Icon as={X} />
         </button>
       </header>
       <div className="settings-body">
@@ -114,7 +116,7 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
         <section className="panel">
           <h3>Пошук у браузері (без ключа)</h3>
           <p className="hint">
-            Якщо ключа Gemini немає, кнопка «В інтернеті» відкриває пошук у браузері. Скопіюйте там текст пісні
+            Якщо ключа Gemini немає, кнопка «Шукати в інтернеті» відкриває пошук у браузері. Скопіюйте там текст пісні
             з акордами й натисніть у програмі «Вставити з буфера».
           </p>
           <label className="field-row">

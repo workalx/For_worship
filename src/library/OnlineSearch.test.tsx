@@ -14,7 +14,7 @@ test('показує знайдені варіанти і передає виб�
   render(<OnlineSearch query="світло" provider={provider} onPick={onPick} onManual={() => {}} onSettings={() => {}} />);
   expect(screen.getByText('Шукаю…')).toBeInTheDocument();
   expect(await screen.findByText('Світло в темряві (live)')).toBeInTheDocument();
-  await userEvent.click(screen.getAllByRole('button', { name: '+ Додати' })[0]);
+  await userEvent.click(screen.getAllByRole('button', { name: 'Додати' })[0]);
   expect(onPick).toHaveBeenCalledWith(expect.objectContaining({ title: 'Світло в темряві', key: 'D' }));
 });
 

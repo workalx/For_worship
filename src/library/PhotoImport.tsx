@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react';
 import { getProvider } from '../ai/getProvider';
 import { AiError, type SongCandidate } from '../ai/provider';
+import { Icon } from '../components/Icon';
+import { Camera } from 'lucide-react';
 
 const MAX_SIDE = 1600;
 
@@ -43,7 +45,8 @@ export function PhotoImport({ onResult, onError }: Props) {
   return (
     <>
       <button type="button" className="btn blue" onClick={() => input.current?.click()}>
-        📷 Фото
+        <Icon as={Camera} />
+        Фото
       </button>
       <input
         ref={input}

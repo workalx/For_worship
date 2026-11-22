@@ -57,7 +57,7 @@ test('без запиту — підказка про бібліотеку; із
   expect(screen.queryByText('Holy, Holy, Holy')).not.toBeInTheDocument();
   expect(screen.getByText('автоакорди')).toBeInTheDocument();
   // Пошук в інтернеті лишається нижче.
-  expect(screen.getByRole('button', { name: '🔍 Шукати в інтернеті' })).toBeEnabled();
+  expect(screen.getByRole('button', { name: 'Шукати в інтернеті' })).toBeEnabled();
 });
 
 test('«+ Додати» одним дотиком зберігає звичайну пісню з джерелом і позначкою, без дублів', async () => {
@@ -65,7 +65,7 @@ test('«+ Додати» одним дотиком зберігає звичай
   render(<LibraryScreen onPlay={() => {}} library={fakeLibrary()} />);
   await user.type(await screen.findByLabelText('Пошук пісні'), 'amazing');
   await user.click(await screen.findByRole('button', { name: 'Додати «Amazing Grace» в мої пісні' }));
-  expect(await screen.findByRole('button', { name: '✓ У моїх піснях' })).toBeInTheDocument();
+  expect(await screen.findByRole('button', { name: 'У моїх піснях' })).toBeInTheDocument();
   const songs = await listSongs();
   expect(songs).toHaveLength(1);
   expect(songs[0]).toMatchObject({
@@ -93,7 +93,7 @@ test('картка: перегляд, транспонування без збе
   await user.click(screen.getByRole('button', { name: 'Тон вище' }));
   expect(screen.getByText('Ab', { selector: '.ch' })).toBeInTheDocument();
   expect(await db.songs.count()).toBe(0);
-  await user.click(screen.getByRole('button', { name: '+ Додати в мої пісні' }));
+  await user.click(screen.getByRole('button', { name: 'Додати в мої пісні' }));
   // Після додавання відкривається вже власна пісня: редагується, додається в служіння.
   expect(await screen.findByRole('button', { name: 'Додати в служіння' })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Редагувати' })).toBeInTheDocument();
@@ -101,13 +101,13 @@ test('картка: перегляд, транспонування без збе
   expect(saved).toMatchObject({ key: 'Ab', originalKey: 'G', libraryId: ENTRY.id });
 });
 
-test('пісня, вже додана з бібліотеки, у картці показує «✓ У моїх піснях» і відкриває її', async () => {
+test('пісня, вже додана з бібліотеки, у картці показує «У моїх піснях» і відкриває її', async () => {
   const mine = await saveSong({ title: 'Amazing Grace', body: SONG.body, libraryId: ENTRY.id, chordsOrigin: 'auto' });
   const user = userEvent.setup();
   render(<LibraryScreen onPlay={() => {}} library={fakeLibrary()} />);
   await user.type(await screen.findByLabelText('Пошук пісні'), 'grace');
   const libraryRow = (await screen.findAllByText('Amazing Grace')).map((el) => el.closest('.item')!).find((row) => within(row as HTMLElement).queryByText('автоакорди') && within(row as HTMLElement).queryByText(/John Newton/));
-  await user.click(within(libraryRow as HTMLElement).getByRole('button', { name: '✓ У моїх піснях' }));
+  await user.click(within(libraryRow as HTMLElement).getByRole('button', { name: 'У моїх піснях' }));
   expect(await screen.findByRole('button', { name: 'Додати в служіння' })).toBeInTheDocument();
   expect(await db.songs.count()).toBe(1);
   expect(mine.id).toBeTruthy();
@@ -117,7 +117,7 @@ test('якщо бібліотека не завантажилась — зроз
   render(<LibraryScreen onPlay={() => {}} library={fakeLibrary(true)} />);
   await userEvent.type(await screen.findByLabelText('Пошук пісні'), 'grace');
   expect(await screen.findByText(/Не вдалося відкрити бібліотеку пісень/)).toBeInTheDocument();
-  await waitFor(() => expect(screen.getByRole('button', { name: '🔍 Шукати в інтернеті' })).toBeEnabled());
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Шукати в інтернеті' })).toBeEnabled());
 });
 
 describe('позначка «автоакорди» після редагування', () => {

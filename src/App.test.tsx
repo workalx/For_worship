@@ -20,12 +20,12 @@ test('перемикає вкладку', async () => {
 test('вкладка «Служіння» показує список служінь', async () => {
   render(<App />);
   await userEvent.click(screen.getByRole('button', { name: /Служіння/ }));
-  expect(await screen.findByRole('button', { name: '+ Нове служіння' })).toBeInTheDocument();
+  expect(await screen.findByRole('button', { name: 'Нове служіння' })).toBeInTheDocument();
 });
 
 test('вкладка «Пісні» відкривається першою і показує бібліотеку', async () => {
   render(<App />);
-  expect(await screen.findByRole('button', { name: '+ Нова пісня' })).toBeInTheDocument();
+  expect(await screen.findByRole('button', { name: 'Нова пісня' })).toBeInTheDocument();
 });
 
 test('вкладка «Тюнер» показує тюнер', async () => {
@@ -56,7 +56,7 @@ test('після переходу на іншу вкладку служіння 
   await saveService({ title: 'Неділя', date: '2999-01-01', items: [{ songId: a.id }, { songId: b.id }] });
   render(<App />);
   await userEvent.click(screen.getByRole('button', { name: /Служіння/ }));
-  await userEvent.click(await screen.findByRole('button', { name: '▶ Почати' }));
+  await userEvent.click(await screen.findByRole('button', { name: 'Почати' }));
   await screen.findByText(/пісня 1 з 2/);
   const area = screen.getByTestId('swipe-area');
   fireEvent.pointerDown(area, { clientX: 400, clientY: 300 });

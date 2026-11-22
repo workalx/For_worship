@@ -1,61 +1,120 @@
+/*
+ * Тема програми: майже чорний фон, «скляні» поверхні з тонкою внутрішньою рамкою, кнопки-пігулки,
+ * великі легкі заголовки, синьо-лавандові акценти й лінійні іконки (Lucide, товщина 1.75).
+ * Акорди лишаються жовтими — так їх найкраще видно з пюпітра.
+ */
 :root {
-  --bg: #0f1012;
-  --surface: #15171a;
-  --surface-2: #1f2226;
-  --border: #2c3036;
-  --line: #22252a;
-  --text: #e9e7e2;
-  --muted: rgba(233, 231, 226, 0.55);
+  --bg: #06070a;
+  --surface: #0c0d12;
+  --surface-2: #14151c;
+  --glass: rgba(17, 18, 24, 0.92);
+  --ring: rgba(214, 205, 255, 0.14);
+  --ring-strong: rgba(214, 205, 255, 0.28);
+  --line: rgba(214, 205, 255, 0.08);
+  --border: rgba(214, 205, 255, 0.14);
+  --text: #eef0f6;
+  --muted: rgba(238, 240, 246, 0.56);
+  --accent: #4d8dff;
+  --accent-soft: rgba(77, 141, 255, 0.14);
+  --accent-ring: rgba(77, 141, 255, 0.55);
+  --accent-text: #cfe0ff;
+  --lavender: #d6cdff;
   --chord: #f5b841;
-  --section: #7fb3ff;
+  --chord-soft: rgba(245, 184, 65, 0.1);
+  --section: #a9bcff;
   --ok: #5fd38d;
-  --danger: #ff6b6b;
-  --radius: 14px;
+  --danger: #ff7a7a;
+  --danger-soft: rgba(255, 122, 122, 0.14);
+  --radius: 16px;
+  --radius-lg: 24px;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  --font: 'Geist Variable', ui-sans-serif, system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: 'Consolas', 'Roboto Mono', 'DejaVu Sans Mono', monospace;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; }
 body {
-  background: var(--bg);
+  background:
+    radial-gradient(1100px 520px at 12% -12%, rgba(124, 104, 255, 0.1), transparent 62%),
+    radial-gradient(900px 480px at 100% 0%, rgba(77, 141, 255, 0.06), transparent 60%),
+    var(--bg);
   color: var(--text);
-  font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+  font-family: var(--font);
+  font-feature-settings: 'ss01', 'cv11';
+  -webkit-font-smoothing: antialiased;
   overflow: hidden;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
 }
 button { font: inherit; color: inherit; cursor: pointer; }
 input, textarea, select { font: inherit; color: inherit; user-select: text; }
+:focus-visible { outline: 2px solid var(--accent-ring); outline-offset: 2px; }
+.icon { flex-shrink: 0; display: block; }
 .app { height: 100%; display: flex; flex-direction: column; }
 .app-main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+/* Кнопки-пігулки */
 .btn {
-  background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px;
-  padding: 10px 16px; font-weight: 600;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  background: var(--glass); border: none; border-radius: 999px; padding: 10px 18px;
+  font-size: 15px; font-weight: 500; letter-spacing: -0.005em; white-space: nowrap;
+  box-shadow: inset 0 0 0 1px var(--ring);
+  transition: box-shadow 0.15s, background 0.15s, transform 0.1s;
 }
-.btn.primary { background: var(--chord); color: #111; border-color: var(--chord); }
-.btn.blue { background: var(--section); color: #0b1220; border-color: var(--section); }
-.btn:disabled { opacity: 0.4; cursor: default; }
+.btn:hover:not(:disabled) { box-shadow: inset 0 0 0 1px var(--ring-strong); }
+.btn:active:not(:disabled) { transform: scale(0.98); }
+.btn.primary { background: var(--text); color: #0a0b10; box-shadow: var(--shadow); }
+.btn.primary:hover:not(:disabled) { background: #ffffff; box-shadow: var(--shadow); }
+.btn.blue { background: var(--accent-soft); color: var(--accent-text); box-shadow: inset 0 0 0 1.2px var(--accent-ring); }
+.btn.blue:hover:not(:disabled) { background: rgba(77, 141, 255, 0.22); box-shadow: inset 0 0 0 1.2px var(--accent-ring); }
+.btn.danger { background: var(--danger-soft); color: var(--danger); box-shadow: inset 0 0 0 1.2px rgba(255, 122, 122, 0.5); }
+.btn:disabled { opacity: 0.38; cursor: default; }
+select.btn { appearance: none; padding-right: 18px; }
+
+.icon-btn {
+  width: 40px; height: 40px; border-radius: 999px; background: var(--glass); border: none; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center; color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--ring); transition: box-shadow 0.15s;
+}
+.icon-btn:hover { box-shadow: inset 0 0 0 1px var(--ring-strong); }
+
+/* Верхня панель екрана */
 .topbar {
-  display: flex; align-items: center; gap: 14px; padding: 10px 20px;
-  border-bottom: 1px solid var(--line); background: var(--surface);
+  display: flex; align-items: center; gap: 12px; padding: 14px 22px 12px;
+  border-bottom: 1px solid var(--line); background: rgba(6, 7, 10, 0.55); backdrop-filter: blur(14px);
 }
-.topbar-title { flex: 1; font-size: 20px; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.topbar-title small { display: block; font-size: 12px; font-weight: 400; color: var(--muted); }
+.topbar-title {
+  flex: 1; font-size: 26px; font-weight: 300; letter-spacing: -0.02em; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.topbar-title small { display: block; font-size: 12px; font-weight: 400; letter-spacing: 0; color: var(--muted); margin-top: 2px; }
+
 .pill {
-  display: flex; align-items: center; gap: 8px; background: var(--surface-2);
-  border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; font-size: 13px; white-space: nowrap;
+  display: flex; align-items: center; gap: 8px; background: var(--glass); border-radius: 999px;
+  padding: 5px 6px 5px 14px; font-size: 13px; color: var(--muted); white-space: nowrap;
+  border: none; box-shadow: inset 0 0 0 1px var(--ring);
 }
-.pill b { color: var(--chord); font-size: 16px; }
+button.pill { padding: 8px 16px; transition: box-shadow 0.15s; }
+button.pill:hover { box-shadow: inset 0 0 0 1px var(--ring-strong); }
+/* Тонка смуга прокрутки в панелях */
+.panel, .settings-body, .song-view { scrollbar-width: thin; scrollbar-color: rgba(214, 205, 255, 0.18) transparent; }
+.pill b { color: var(--chord); font-size: 16px; font-weight: 600; }
+.pill > .icon { color: var(--muted); }
 .pill .round {
-  width: 30px; height: 30px; border-radius: 50%; background: var(--border); border: none;
-  display: flex; align-items: center; justify-content: center; font-weight: 700; padding: 0;
+  width: 30px; height: 30px; border-radius: 50%; background: rgba(214, 205, 255, 0.08); border: none;
+  display: flex; align-items: center; justify-content: center; padding: 0; color: var(--text);
 }
+.pill .round:hover:not(:disabled) { background: rgba(214, 205, 255, 0.16); }
 .pill .round:disabled { opacity: 0.35; }
+.pill .capo-shape { color: var(--muted); font-size: 12px; padding-right: 8px; }
+
+/* Мітки */
 .badge-auto {
-  display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px; vertical-align: middle;
-  font-size: 11px; font-weight: 600; letter-spacing: 0.02em; color: var(--section);
-  border: 1px solid color-mix(in srgb, var(--section) 55%, transparent);
+  display: inline-block; margin-left: 10px; padding: 2px 9px; border-radius: 99px; vertical-align: middle;
+  font-size: 11px; font-weight: 500; letter-spacing: 0.01em; color: var(--accent-text);
+  background: var(--accent-soft); box-shadow: inset 0 0 0 1.2px var(--accent-ring);
 }
-.pill .capo-shape { color: var(--muted); font-size: 12px; }
+
 .placeholder-screen { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--muted); }
 .error-text { color: var(--danger); }

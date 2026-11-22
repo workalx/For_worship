@@ -3,6 +3,8 @@ import { getSong, saveService, saveSong, db, type Service, type Song } from '../
 import { SongScreen } from '../song/SongScreen';
 import { detectSwipe } from './swipe';
 import './Service.css';
+import { Icon } from '../components/Icon';
+import { ArrowLeft, ChevronLeft, ChevronRight, X } from 'lucide-react';
 
 type Props = {
   serviceId: string;
@@ -45,7 +47,8 @@ export function ServicePlayer({ serviceId, index: startIndex, onExit, onSongShow
       <div className="placeholder-screen column">
         У цьому служінні ще немає пісень.
         <button type="button" className="btn" onClick={onExit}>
-          ← До списку
+          <Icon as={ArrowLeft} />
+          До списку
         </button>
       </div>
     );
@@ -77,7 +80,12 @@ export function ServicePlayer({ serviceId, index: startIndex, onExit, onSongShow
   const footer = (
     <div className="player-foot">
       <button type="button" className="link" disabled={index === 0} onClick={() => go('prev')}>
-        {index > 0 ? `← Попередня: ${titleAt(index - 1)}` : ''}
+        {index > 0 && (
+          <>
+            <Icon as={ChevronLeft} />
+            Попередня: {titleAt(index - 1)}
+          </>
+        )}
       </button>
       <div className="dots" aria-hidden="true">
         {service.items.map((_, i) => (
@@ -85,7 +93,12 @@ export function ServicePlayer({ serviceId, index: startIndex, onExit, onSongShow
         ))}
       </div>
       <button type="button" className="link right" disabled={index === total - 1} onClick={() => go('next')}>
-        {index < total - 1 ? `Наступна: ${titleAt(index + 1)} →` : ''}
+        {index < total - 1 && (
+          <>
+            Наступна: {titleAt(index + 1)}
+            <Icon as={ChevronRight} />
+          </>
+        )}
       </button>
     </div>
   );
@@ -119,7 +132,7 @@ export function ServicePlayer({ serviceId, index: startIndex, onExit, onSongShow
           footer={footer}
           actions={
             <button type="button" className="icon-btn" aria-label="До списку служінь" onClick={onExit}>
-              ✕
+              <Icon as={X} />
             </button>
           }
         />
