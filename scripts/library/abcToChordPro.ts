@@ -7,7 +7,8 @@ import { keyPrefersFlats } from '../../src/music/chords';
 import { parseLyricLine, type AbcNote, type AbcTune } from './abc';
 import { chordName, harmonize, type ChordEvent } from './harmony';
 
-type Syl = { time: number; text: string; wordEnd: boolean; pre: string[]; post: string[] };
+/** Склад на ноті: time — початок, end — кінець звучання (з урахуванням «_» — протягнутих нот). */
+type Syl = { time: number; end: number; text: string; wordEnd: boolean; pre: string[]; post: string[] };
 
 export type ConvertedSong = {
   title: string;
@@ -69,9 +70,14 @@ function alignLine(notes: AbcNote[], lyric: string): Syl[] {
   for (const item of parseLyricLine(lyric)) {
     if (idx >= notes.length) break;
     if (item.kind === 'syl') {
-      out.push({ time: notes[idx].start, text: item.text, wordEnd: item.wordEnd, pre: [], post: [] });
+      const n = notes[idx];
+      out.push({ time: n.start, end: n.start + n.dur, text: item.text, wordEnd: item.wordEnd, pre: [], post: [] });
       idx++;
-    } else if (item.kind === 'skip' || item.kind === 'hold') {
+    } else if (item.kind === 'hold') {
+      const last = out[out.length - 1];
+      if (last) last.end = notes[idx].start + notes[idx].dur;
+      idx++;
+    } else if (item.kind === 'skip') {
       idx++;
     } else if (idx > 0) {
       const bar = notes[idx - 1].bar;
@@ -81,9 +87,15 @@ function alignLine(notes: AbcNote[], lyric: string): Syl[] {
   return out;
 }
 
-/** Розставляє акорди: на склад, що починається в момент зміни, або одразу після складу, що звучить. */
+/**
+ * Розставляє акорди: на склад, що починається в момент зміни, або одразу після складу, що звучить.
+ * Акорди після останнього складу частини (напр., затакт приспіву, який співає лише перший куплет)
+ * не чіпляються до кінця рядка.
+ */
 function placeChords(syls: Syl[], chords: { time: number; name: string }[]) {
+  const last = syls[syls.length - 1];
   for (const c of chords) {
+    if (last && c.time >= last.end - 1e-9 && c.time > last.time + 1e-9) continue;
     let k = -1;
     for (let i = 0; i < syls.length; i++) if (syls[i].time <= c.time + 1e-9) k = i;
     if (k < 0) {
@@ -180,14 +192,16 @@ export function abcToChordPro(
     for (const l of lines) {
       const text = tune.lyrics.get(l)![isRefrain(l) ? 0 : v];
       if (text === undefined) continue;
-      const lineSyls = alignLine(melody.notes.filter((n) => n.line === l), text);
+      const lineSyls = alignLine(melody.notes.filter((n) => n.line === l && !n.overlay), text);
       syls.push(...lineSyls);
       const [a, b] = ranges.get(l) ?? [0, 0];
       sectionChords.push(...chords.filter((c) => c.time >= a - 1e-9 && c.time < b - 1e-9));
     }
     if (syls.length) syls[0].text = syls[0].text.replace(VERSE_NUMBER, '');
-    placeChords(syls, sectionChords);
-    return syls.filter((s) => s.text !== '' || s.pre.length || s.post.length);
+    // Номер куплету окремим складом («2.» під нотою) після вилучення лишає порожній склад — прибираємо.
+    const words = syls.filter((s) => s.text.trim() !== '');
+    placeChords(words, sectionChords);
+    return words;
   };
 
   const verseLines = lyricLines.filter((l) => !isRefrain(l));
@@ -246,19 +260,23 @@ export function abcToChordPro(
   // Порожні голоси (лише паузи) не рахуємо. Голос може закінчитися раніше за мелодію,
   // але його такти мають збігатися з тактами мелодії, інакше розбір зсунувся.
   const voices = tune.voices.filter((v) => v.notes.length > 0);
-  // Порівнюємо моменти тактових рисок (подвійна риска чи риска на початку рядка не дає «зайвого» такту).
+  // Голоси мають іти разом із мелодією. Вважаємо так, якщо збігаються або моменти початку
+  // музичних рядків (у джерелі інколи пропущено тактову риску), або моменти тактових рисок
+  // (рядки інколи розбито по-різному).
+  const sameTimes = (a: number[], b: number[]) => {
+    const n = Math.min(a.length, b.length);
+    for (let i = 0; i < n; i++) {
+      if (a[i] === undefined || b[i] === undefined) continue;
+      if (Math.abs(a[i] - b[i]) > 1e-6) return false;
+    }
+    return true;
+  };
   const barTimes = (v: typeof melody) => v.barStarts.filter((t, i, a) => i === 0 || t > a[i - 1] + 1e-9);
-  const melodyBars = barTimes(melody);
   for (const v of voices) {
     if (v === melody) continue;
     if (v.end > melody.end + 1e-6) warnings.push(`голос ${v.id} довший за мелодію`);
-    const own = barTimes(v);
-    const n = Math.min(own.length, melodyBars.length);
-    for (let i = 0; i < n; i++) {
-      if (Math.abs(own[i] - melodyBars[i]) > 1e-6) {
-        warnings.push(`такти голосу ${v.id} не збігаються з мелодією (такт ${i})`);
-        break;
-      }
+    else if (!sameTimes(v.lineStarts, melody.lineStarts) && !sameTimes(barTimes(v), barTimes(melody))) {
+      warnings.push(`голос ${v.id} розходиться з мелодією`);
     }
   }
   const voiceParts = voices.reduce((sum, v) => sum + Math.max(...v.notes.map((x) => x.pitches.length)), 0);

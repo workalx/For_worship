@@ -14,6 +14,8 @@ export type AbcNote = {
   bar: number;
   /** Номер музичного рядка цього голосу у файлі. */
   line: number;
+  /** Нота з накладення голосу (`&`): звучить паралельно, слова під неї не ставляться. */
+  overlay?: boolean;
 };
 
 export type AbcVoice = {
@@ -23,6 +25,8 @@ export type AbcVoice = {
   barStarts: number[];
   /** Кінець останньої ноти або паузи. */
   end: number;
+  /** Час початку кожного музичного рядка голосу (для перевірки, що голоси йдуть разом). */
+  lineStarts: number[];
 };
 
 export type AbcTune = {
@@ -130,7 +134,7 @@ export function parseAbc(text: string): AbcTune {
   const voiceState = (id: string): VoiceState => {
     let st = states.get(id);
     if (!st) {
-      const voice: AbcVoice = { id, notes: [], barStarts: [0], end: 0 };
+      const voice: AbcVoice = { id, notes: [], barStarts: [0], end: 0, lineStarts: [] };
       tune.voices.push(voice);
       st = { voice, time: 0, bar: 0, line: -1, barAcc: new Map() };
       states.set(id, st);
@@ -235,6 +239,7 @@ export function parseAbc(text: string): AbcTune {
     }
     if (!current) current = voiceState('1');
     current.line++;
+    current.voice.lineStarts[current.line] = current.time;
     if (current.voice.id === melodyId) lastMelodyLine = current.line;
     const k = parseMusic(body, current, unit, keyAcc, tune);
     keyAcc = k;
@@ -260,8 +265,14 @@ function parseMusic(
   let tupletFactor = 1;
   let brokenNext = 1;
   let lastNote: AbcNote | null = null;
+  /** Накладення `&`: ноти після нього звучать від початку такту; час основного голосу — тут. */
+  let overlayFrom: number | null = null;
 
   const newBar = () => {
+    if (overlayFrom !== null) {
+      st.time = Math.max(st.time, overlayFrom);
+      overlayFrom = null;
+    }
     st.bar++;
     st.voice.barStarts[st.bar] = st.time;
     st.barAcc.clear();
@@ -318,6 +329,7 @@ function parseMusic(
     dur *= brokenNext;
     brokenNext = 1;
     const note: AbcNote = { start: st.time, dur, pitches, bar: st.bar, line: st.line };
+    if (overlayFrom !== null) note.overlay = true;
     st.voice.notes.push(note);
     st.time += dur;
     lastNote = note;
@@ -338,6 +350,14 @@ function parseMusic(
   while (i < s.length) {
     const c = s[i];
     if (c === '%') break;
+    if (c === '&') {
+      // Накладення в межах такту: наступні ноти звучать разом з уже записаними.
+      if (overlayFrom === null) overlayFrom = st.time;
+      st.time = st.voice.barStarts[st.bar] ?? st.time;
+      lastNote = null;
+      i++;
+      continue;
+    }
     if (c === ' ' || c === '\t' || c === '`' || c === '\\' || c === '$' || c === '.' || c === '~' || c === ')') {
       i++;
       continue;

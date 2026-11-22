@@ -69,8 +69,9 @@ describe('розбір ABC', () => {
 });
 
 describe('акорди з чотириголосся', () => {
-  test.each(ALL)('%s: не більше двох акордів на такт, лише мажор/мінор/7', (name) => {
+  test.each(ALL)('%s: не більше двох акордів на такт (на половину довгого такту), лише мажор/мінор/7', (name) => {
     const t = load(name);
+    const longBar = meterInfo(t.meter).bar > 1;
     const events = harmonize(t);
     const starts = t.voices[0].barStarts;
     const perBar = new Map<number, number>();
@@ -79,7 +80,7 @@ describe('акорди з чотириголосся', () => {
       while (bar + 1 < starts.length && starts[bar + 1] <= e.time + 1e-9) bar++;
       perBar.set(bar, (perBar.get(bar) ?? 0) + 1);
     }
-    expect(Math.max(...perBar.values())).toBeLessThanOrEqual(2);
+    expect(Math.max(...perBar.values())).toBeLessThanOrEqual(longBar ? 4 : 2);
     for (const e of events) expect(['', 'm', '7']).toContain(e.quality);
   });
 
@@ -156,11 +157,43 @@ describe('ABC → ChordPro', () => {
       [
         'Refrain:',
         'This is my story, [G]this is my [D]song,',
-        'Praising my [G]Savior, [A]all the day long;',
+        'Praising my [G]Sa[D]vior, [A]all the day long;',
         '[A7]This is my [D]story, this is my song,',
         'Praising my [Em]Savior, [D]all the day long.',
       ].join('\n'),
     );
     expect(parts.filter((p) => p.startsWith('Refrain:'))).toHaveLength(1);
+  });
+});
+
+describe('складні місця ABC', () => {
+  const TUNE = (body: string) =>
+    ['X: 1', 'T: Test', 'C: copyright: public domain.', 'M: 4/4', 'L: 1/4', 'V: S1', 'V: S2', 'V: S3', 'K: C', body].join('\n');
+
+  test('накладення «&» звучить паралельно й не забирає слова', () => {
+    const t = parseAbc(
+      TUNE(['[V: S1] C E G c & E G c e | c4 |]', 'w: one two three four five', '[V: S2] E,4 | E,4 |]', '[V: S3] C,4 | C,4 |]'].join('\n')),
+    );
+    const mel = t.voices[0];
+    expect(mel.end).toBeCloseTo(2);
+    expect(mel.notes.filter((n) => n.overlay).map((n) => n.start)).toEqual([0, 0.25, 0.5, 0.75]);
+    const song = abcToChordPro(t);
+    expect(song.body).toContain('one two three four five');
+    expect(song.stats.warnings).toEqual([]);
+  });
+
+  test('пропущена тактова риска в одному голосі не робить пісню «ненадійною»', () => {
+    const t = parseAbc(
+      TUNE(['[V: S1] C2 E2 | G4 | c4 |]', 'w: a b c d', '[V: S2] E,2 G,2 B,4 | E,4 |]', '[V: S3] C,2 C,2 | C,4 | C,4 |]'].join('\n')),
+    );
+    expect(abcToChordPro(t).stats.warnings).toEqual([]);
+  });
+
+  test('номер куплету окремим складом не лишає порожнього місця перед текстом', () => {
+    const t = parseAbc(
+      TUNE(['[V: S1] C D E F | G4 |]', 'w: 1.~Lord of all the earth', 'w: 2. God of my soul', '[V: S2] E,4 | E,4 |]', '[V: S3] C,4 | C,4 |]'].join('\n')),
+    );
+    const body = abcToChordPro(t).body;
+    expect(body).toContain('Verse 2:\n[C]God of my soul');
   });
 });

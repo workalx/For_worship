@@ -108,7 +108,7 @@ function bestChord(win: Window, key: { tonic: number; minor: boolean }, opts: Ha
 export function harmonize(tune: AbcTune, opts: HarmonyOptions = DEFAULT_HARMONY): ChordEvent[] {
   const melody = tune.voices[0];
   if (!melody) return [];
-  const { beat } = meterInfo(tune.meter);
+  const { beat, bar } = meterInfo(tune.meter);
   const key = keyPc(tune.key);
   const end = Math.max(...tune.voices.map((v) => v.end));
   const starts = melody.barStarts.filter((t, i, a) => i === 0 || t > a[i - 1] + 1e-9);
@@ -124,25 +124,45 @@ export function harmonize(tune: AbcTune, opts: HarmonyOptions = DEFAULT_HARMONY)
     if (!one) continue;
     const same = (c: { root: number; quality: ChordQuality }, d: { root: number; quality: ChordQuality } | null) =>
       !!d && c.root === d.root && c.quality === d.quality;
-    let bestPlan: { score: number; parts: { time: number; root: number; quality: ChordQuality }[] } = {
-      score: one.score + (same(one, prev) ? 0.03 : 0),
-      parts: [{ time: a, root: one.root, quality: one.quality }],
+    // Межі долей (з урахуванням неповного першого такту — від кінця такту).
+    const cuts = [a];
+    const inner: number[] = [];
+    for (let t = z - beat; t > a + 1e-9; t -= beat) inner.push(t);
+    cuts.push(...inner.reverse(), z);
+    // Звичайний такт — до двох акордів; довгий (6/4, 9/8, 12/8, 3/2) — до двох на кожну половину.
+    const maxParts = Math.min(bar > 1 + 1e-9 ? 4 : 2, cuts.length - 1);
+    type Part = { time: number; root: number; quality: ChordQuality };
+    type Plan = { score: number; parts: Part[] };
+    const segment = (i: number, j: number) => {
+      const w = collect(tune.voices, cuts[i], cuts[j]);
+      const c = bestChord(w, key, opts);
+      return c ? { ...c, share: w.total / whole.total } : null;
     };
-    // Поділ такту на межі долі (з урахуванням неповного першого такту — від кінця).
-    const splits: number[] = [];
-    for (let t = z - beat; t > a + 1e-9; t -= beat) splits.push(t);
-    for (const t of splits) {
-      const w1 = collect(tune.voices, a, t);
-      const w2 = collect(tune.voices, t, z);
-      const c1 = bestChord(w1, key, opts);
-      const c2 = bestChord(w2, key, opts);
-      if (!c1 || !c2 || same(c1, c2)) continue;
-      const f1 = w1.total / whole.total;
-      const f2 = w2.total / whole.total;
-      const score = c1.score * f1 + c2.score * f2 - opts.changePenalty + (same(c1, prev) ? 0.03 : 0);
-      if (score > bestPlan.score + 1e-9) {
-        bestPlan = { score, parts: [{ time: a, ...c1 }, { time: t, ...c2 }] };
+    // best[j][k]: найкращий поділ відрізка [cuts[0], cuts[j]) на k акордів.
+    const best: (Plan | null)[][] = cuts.map(() => new Array<Plan | null>(maxParts + 1).fill(null));
+    best[0][0] = { score: 0, parts: [] };
+    for (let j = 1; j < cuts.length; j++) {
+      for (let i = 0; i < j; i++) {
+        const seg = segment(i, j);
+        if (!seg) continue;
+        for (let k = 0; k < maxParts; k++) {
+          const from = best[i][k];
+          if (!from) continue;
+          const last = from.parts[from.parts.length - 1] ?? null;
+          if (last && same(seg, last)) continue;
+          let score = from.score + seg.score * seg.share;
+          if (k > 0) score -= opts.changePenalty;
+          else if (same(seg, prev)) score += 0.03;
+          const cur = best[j][k + 1];
+          if (!cur || score > cur.score + 1e-9) {
+            best[j][k + 1] = { score, parts: [...from.parts, { time: cuts[i], root: seg.root, quality: seg.quality }] };
+          }
+        }
       }
+    }
+    let bestPlan: Plan = { score: one.score + (same(one, prev) ? 0.03 : 0), parts: [{ time: a, root: one.root, quality: one.quality }] };
+    for (const plan of best[cuts.length - 1]) {
+      if (plan && plan.parts.length > 1 && plan.score > bestPlan.score + 1e-9) bestPlan = plan;
     }
     for (const p of bestPlan.parts) {
       if (!same(p, prev)) events.push({ time: p.time, root: p.root, quality: p.quality });
