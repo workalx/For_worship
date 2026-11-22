@@ -19,6 +19,8 @@ import { IMPORT_ACCEPT, importSongFiles, type ImportReport } from './bulkImport'
 import type { AiError, SongCandidate } from '../ai/provider';
 import './Library.css';
 import '../settings/Settings.css';
+import { Icon } from '../components/Icon';
+import { ArrowLeft, ClipboardPaste, ExternalLink, FolderInput, Play, Plus, Search, Settings, Trash2, X } from 'lucide-react';
 
 type Mode =
   | { kind: 'list' }
@@ -286,10 +288,10 @@ export function LibraryScreen({ onPlay, onSongShown, shared, library = libraryLo
                 aria-label="Видалити пісню"
                 onClick={() => setToDelete({ id: viewSong.id, title: viewSong.title })}
               >
-                🗑
+                <Icon as={Trash2} />
               </button>
               <button type="button" className="icon-btn" aria-label="До списку пісень" onClick={() => setMode({ kind: 'list' })}>
-                ✕
+                <Icon as={X} />
               </button>
             </>
           }
@@ -314,20 +316,22 @@ export function LibraryScreen({ onPlay, onSongShown, shared, library = libraryLo
           Збережено <b>{allSongs.length}</b>
         </div>
         <button type="button" className="icon-btn" aria-label="Налаштування" onClick={() => setMode({ kind: 'settings' })}>
-          ⚙
+          <Icon as={Settings} />
         </button>
       </header>
       <div className="library-body">
         <div className="panel" style={{ flex: 1.3 }}>
           <div className="row">
-            <input
+            <label className="search-field">
+              <Icon as={Search} />
+              <input
               className="field"
-              style={{ flex: 1 }}
               aria-label="Пошук пісні"
-              placeholder="🔍 Знайти пісню…"
+              placeholder="Назва, рядок тексту або автор…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-            />
+              />
+            </label>
             <PhotoImport
               onResult={(c) => {
                 setAiError(null);
@@ -338,13 +342,16 @@ export function LibraryScreen({ onPlay, onSongShown, shared, library = libraryLo
           </div>
           <div className="row">
             <button type="button" className="btn" onClick={() => setMode({ kind: 'edit' })}>
-              + Нова пісня
+              <Icon as={Plus} />
+              Нова пісня
             </button>
             <button type="button" className="btn" onClick={() => void pasteFromClipboard()}>
-              📋 Вставити з буфера
+              <Icon as={ClipboardPaste} />
+              Вставити з буфера
             </button>
             <button type="button" className="btn" disabled={importing} onClick={() => fileInput.current?.click()}>
-              {importing ? 'Імпортую…' : '📂 Імпорт файлів'}
+              <Icon as={FolderInput} />
+              {importing ? 'Імпортую…' : 'Імпорт файлів'}
             </button>
             <input
               ref={fileInput}
@@ -394,7 +401,7 @@ export function LibraryScreen({ onPlay, onSongShown, shared, library = libraryLo
           <div className="panel-tag">Мої пісні</div>
           {songs.length === 0 && (
             <p style={{ color: 'var(--muted)' }}>
-              {allSongs.length === 0 ? 'Ще немає пісень. Додайте першу: «+ Нова пісня».' : 'Нічого не знайдено.'}
+              {allSongs.length === 0 ? 'Ще немає пісень. Додайте першу: «Нова пісня».' : 'Нічого не знайдено.'}
             </p>
           )}
           {songs.map((s) => {
@@ -414,7 +421,7 @@ export function LibraryScreen({ onPlay, onSongShown, shared, library = libraryLo
                   aria-label={`Видалити «${s.title}»`}
                   onClick={() => setToDelete({ id: s.id, title: s.title })}
                 >
-                  🗑
+                  <Icon as={Trash2} />
                 </button>
               </div>
             );
@@ -431,24 +438,27 @@ export function LibraryScreen({ onPlay, onSongShown, shared, library = libraryLo
           />
           <div className="row">
             <button type="button" className="btn blue" disabled={!query.trim()} onClick={searchOnline}>
-              🔍 Шукати в інтернеті
+              <Icon as={Search} />
+              Шукати в інтернеті
             </button>
             <button type="button" className="btn" disabled={!query.trim()} onClick={() => searchInBrowser(query.trim())}>
-              🌐 У браузері
+              <Icon as={ExternalLink} />
+              У браузері
             </button>
           </div>
           {browserHint && (
             <div className="online-status">
               <div>
                 Пошук відкрито в браузері. Знайдіть пісню, виділіть і скопіюйте текст з акордами, поверніться сюди
-                й натисніть «📋 Вставити з буфера». Або виділіть текст і виберіть «Поділитися» → For Worship.
+                й натисніть «Вставити з буфера». Або виділіть текст і виберіть «Поділитися» → For Worship.
               </div>
             </div>
           )}
           {online !== null && (
             <>
               <button type="button" className="btn" style={{ alignSelf: 'flex-start' }} onClick={() => setOnline(null)}>
-                ← Сховати результати пошуку
+                <Icon as={ArrowLeft} />
+                Сховати результати пошуку
               </button>
               <OnlineSearch
                 query={online.query}
@@ -480,7 +490,8 @@ export function LibraryScreen({ onPlay, onSongShown, shared, library = libraryLo
                   disabled={service.items.length === 0}
                   onClick={() => onPlay(service.id, 0)}
                 >
-                  ▶ Почати
+                  <Icon as={Play} />
+                  Почати
                 </button>
               </div>
               <small style={{ color: 'var(--muted)' }}>{service.date}</small>

@@ -13,7 +13,7 @@ beforeEach(async () => {
 test('створює служіння, додає пісні, міняє порядок і запускає', async () => {
   const onPlay = vi.fn();
   render(<ServiceScreen onPlay={onPlay} />);
-  await userEvent.click(await screen.findByRole('button', { name: '+ Нове служіння' }));
+  await userEvent.click(await screen.findByRole('button', { name: 'Нове служіння' }));
   const title = screen.getByLabelText('Назва служіння');
   await userEvent.clear(title);
   await userEvent.type(title, 'Молодіжне');
@@ -35,6 +35,6 @@ test('створює служіння, додає пісні, міняє пор�
   const first = await db.songs.get(s.items[0].songId);
   expect(first?.title).toBe('Ти гідний');
 
-  await userEvent.click(screen.getByRole('button', { name: '▶ Почати' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Почати' }));
   expect(onPlay).toHaveBeenCalledWith(s.id, 0);
 });

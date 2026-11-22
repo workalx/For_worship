@@ -1,10 +1,7 @@
 .song-screen { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .key-select {
-  background: transparent; border: none; color: var(--chord); font-weight: 700; font-size: 16px;
+  background: transparent; border: none; color: var(--chord); font-weight: 600; font-size: 16px;
   appearance: none; padding: 0 2px; cursor: pointer;
 }
 .key-select option { background: var(--surface-2); color: var(--text); }
-.icon-btn {
-  width: 40px; height: 40px; border-radius: 12px; background: var(--surface-2);
-  border: 1px solid var(--border); font-size: 18px; flex-shrink: 0;
-}
+/* .icon-btn, .pill — у styles/theme.css */

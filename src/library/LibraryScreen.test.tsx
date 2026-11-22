@@ -29,9 +29,9 @@ test('відкриває пісню і додає її в найближче с�
   expect(s.items).toHaveLength(1);
 });
 
-test('«+ Нова пісня» відкриває редактор', async () => {
+test('«Нова пісня» відкриває редактор', async () => {
   render(<LibraryScreen onPlay={() => {}} />);
-  await userEvent.click(await screen.findByRole('button', { name: '+ Нова пісня' }));
+  await userEvent.click(await screen.findByRole('button', { name: 'Нова пісня' }));
   expect(screen.getByLabelText('Текст пісні')).toBeInTheDocument();
 });
 
@@ -39,7 +39,7 @@ test('пошук в інтернеті без ключа відкриває по
   localStorage.clear();
   const open = vi.spyOn(window, 'open').mockImplementation(() => null);
   render(<LibraryScreen onPlay={() => {}} />);
-  const online = await screen.findByRole('button', { name: '🔍 Шукати в інтернеті' });
+  const online = await screen.findByRole('button', { name: 'Шукати в інтернеті' });
   expect(online).toBeDisabled();
   await userEvent.type(screen.getByLabelText('Пошук пісні'), 'Свята любов');
   await userEvent.click(online);
@@ -52,11 +52,11 @@ test('пошук в інтернеті без ключа відкриває по
   open.mockRestore();
 });
 
-test('«🌐 У браузері» використовує пошукову систему з налаштувань', async () => {
+test('«У браузері» використовує пошукову систему з налаштувань', async () => {
   localStorage.setItem('fw.settings', JSON.stringify({ geminiKey: 'k', searchEngine: 'google' }));
   const open = vi.spyOn(window, 'open').mockImplementation(() => null);
   render(<LibraryScreen onPlay={() => {}} />);
-  const btn = await screen.findByRole('button', { name: '🌐 У браузері' });
+  const btn = await screen.findByRole('button', { name: 'У браузері' });
   expect(btn).toBeDisabled();
   await userEvent.type(screen.getByLabelText('Пошук пісні'), 'Свята любов');
   await userEvent.click(btn);
@@ -65,12 +65,12 @@ test('«🌐 У браузері» використовує пошукову с�
   localStorage.clear();
 });
 
-test('«📋 Вставити з буфера» відкриває редактор з розібраною піснею', async () => {
+test('«Вставити з буфера» відкриває редактор з розібраною піснею', async () => {
   const user = userEvent.setup();
   render(<LibraryScreen onPlay={() => {}} />);
   await user.type(await screen.findByLabelText('Пошук пісні'), 'Свята любов');
   await navigator.clipboard.writeText('Em      C\nСвята любов');
-  await user.click(screen.getByRole('button', { name: '📋 Вставити з буфера' }));
+  await user.click(screen.getByRole('button', { name: 'Вставити з буфера' }));
   const body = (await screen.findByLabelText('Текст пісні')) as HTMLTextAreaElement;
   expect(body.value).toContain('[Em]');
   expect(body.value).toContain('[C]');
@@ -82,7 +82,7 @@ test('порожній буфер відкриває редактор з під�
   render(<LibraryScreen onPlay={() => {}} />);
   await screen.findByText('Великий Бог');
   await navigator.clipboard.writeText('   ');
-  await user.click(screen.getByRole('button', { name: '📋 Вставити з буфера' }));
+  await user.click(screen.getByRole('button', { name: 'Вставити з буфера' }));
   expect(await screen.findByLabelText('Текст пісні')).toHaveValue('');
   expect(screen.getByText(/Не вдалося прочитати буфер/)).toBeInTheDocument();
 });
@@ -112,9 +112,9 @@ test('⚙ відкриває налаштування', async () => {
   expect(screen.getByText('Резервна копія')).toBeInTheDocument();
 });
 
-test('кнопка «📷 Фото» активна', async () => {
+test('кнопка «Фото» активна', async () => {
   render(<LibraryScreen onPlay={() => {}} />);
-  expect(await screen.findByRole('button', { name: '📷 Фото' })).toBeEnabled();
+  expect(await screen.findByRole('button', { name: 'Фото' })).toBeEnabled();
 });
 
 test('🗑 на екрані пісні видаляє її після підтвердження', async () => {

@@ -1,31 +1,40 @@
 .library, .editor { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.library-body { flex: 1; min-height: 0; display: flex; gap: 20px; padding: 18px 20px; }
+.library-body { flex: 1; min-height: 0; display: flex; gap: 18px; padding: 18px 22px 6px; }
 .key-badge {
-  width: 40px; height: 40px; border-radius: 10px; background: #2a2410; color: var(--chord);
-  display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0;
+  width: 42px; height: 42px; border-radius: 14px; background: var(--chord-soft); color: var(--chord);
+  box-shadow: inset 0 0 0 1px rgba(245, 184, 65, 0.22);
+  display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px; flex-shrink: 0;
 }
 .toast {
-  position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); background: var(--surface-2);
-  border: 1px solid var(--border); border-radius: 999px; padding: 10px 18px; font-size: 14px; z-index: 10;
+  position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); background: var(--glass);
+  box-shadow: inset 0 0 0 1px var(--ring), var(--shadow); border-radius: 999px; padding: 11px 20px;
+  font-size: 14px; z-index: 10; backdrop-filter: blur(12px);
 }
-.editor-body { flex: 1; min-height: 0; display: flex; gap: 16px; padding: 14px 18px; }
-.editor-form { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.editor-body { flex: 1; min-height: 0; display: flex; gap: 18px; padding: 18px 22px; }
+.editor-form { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
 .editor-preview {
-  flex: 1; min-width: 0; display: flex; flex-direction: column; border: 1px solid var(--line);
-  border-radius: 14px; background: #0b0c0e; overflow: hidden;
+  flex: 1; min-width: 0; display: flex; flex-direction: column; border-radius: var(--radius-lg);
+  background: var(--surface); box-shadow: inset 0 0 0 1px var(--ring); overflow: hidden;
 }
-.field-row { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+.field-row { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); }
 .field-row .field { color: var(--text); font-size: 15px; }
 .field-row.small { width: 110px; }
 .field-row.grow { flex: 1; min-height: 0; }
 .field-row textarea { flex: 1; min-height: 160px; resize: none; }
 .mono { font-family: var(--mono); font-size: 14px; line-height: 1.35; white-space: pre; }
 
+/* Пошук з іконкою всередині поля */
+.search-field { position: relative; flex: 1; min-width: 220px; display: flex; }
+.search-field .icon {
+  position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none;
+}
+.search-field .field { flex: 1; padding-left: 44px; border-radius: 999px; }
+
 .item-open {
-  flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 0;
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 0;
   background: none; border: none; color: inherit; text-align: left;
 }
 
-.library-hint { color: var(--muted); font-size: 13px; margin: 4px 0; }
+.library-hint { color: var(--muted); font-size: 13px; line-height: 1.5; margin: 6px 2px; }
 .import-report ul { margin: 0; padding-left: 18px; font-size: 13px; }
 .import-report b { color: var(--text); }

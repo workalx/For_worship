@@ -19,7 +19,7 @@
 .song-columns.split .song-section { break-inside: auto; }
 .song-head, .song-line { break-inside: avoid; }
 .song-label {
-  font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+  font-family: var(--font);
   font-size: 0.62em;
   letter-spacing: 0.12em;
   text-transform: uppercase;

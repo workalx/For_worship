@@ -3,6 +3,8 @@ import type { TimeSig } from '../db/db';
 import { beatsPerBar, MAX_BPM, MIN_BPM, tapTempo } from './tempo';
 import type { Metronome } from './useMetronome';
 import './Metronome.css';
+import { Icon } from '../components/Icon';
+import { Music, Play, Square } from 'lucide-react';
 
 type Props = {
   metro: Metronome;
@@ -37,6 +39,7 @@ export function MetronomeScreen({ metro, songBpm, songTitle, songTimeSig }: Prop
               if (songTimeSig) setTimeSig(songTimeSig);
             }}
           >
+            <Icon as={Music} size={16} />
             З пісні: <b>{`${songTitle ?? ''} · ${songBpm}`}</b>
           </button>
         ) : null}
@@ -74,7 +77,7 @@ export function MetronomeScreen({ metro, songBpm, songTitle, songTimeSig }: Prop
             <option value="6/8">6/8</option>
           </select>
           <button type="button" className={`play${running ? ' stop' : ''}`} aria-label={running ? 'Стоп' : 'Старт'} onClick={toggle}>
-            {running ? '■' : '▶'}
+            {running ? <Icon as={Square} size={30} fill="currentColor" /> : <Icon as={Play} size={34} fill="currentColor" />}
           </button>
           <button type="button" className="btn" onClick={onTap}>
             Tap

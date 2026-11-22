@@ -4,6 +4,8 @@ import { SongScreen } from '../song/SongScreen';
 import type { LibraryIndexEntry, LibrarySong } from './catalogTypes';
 import { createLibraryLoader } from './libraryData';
 import { createLibrarySearch } from './librarySearch';
+import { Icon } from '../components/Icon';
+import { ArrowLeft, Check, Plus, X } from 'lucide-react';
 
 export type LibraryLoader = ReturnType<typeof createLibraryLoader>;
 
@@ -80,11 +82,13 @@ export function HymnResults({ query, entries, error, search, added, onOpen, onAd
             </button>
             {mine ? (
               <button type="button" className="btn" onClick={() => onOpenMine(mine)}>
-                ✓ У моїх піснях
+                <Icon as={Check} />
+                У моїх піснях
               </button>
             ) : (
               <button type="button" className="btn blue" aria-label={`Додати «${e.title}» в мої пісні`} onClick={() => onAdd(e)}>
-                + Додати
+                <Icon as={Plus} />
+                Додати
               </button>
             )}
           </div>
@@ -128,7 +132,7 @@ export function HymnCard({ entry, library, mine, onAdd, onOpenMine, onClose }: C
 
   const close = (
     <button type="button" className="icon-btn" aria-label="До списку пісень" onClick={onClose}>
-      ✕
+      <Icon as={X} />
     </button>
   );
   if (error || !song) {
@@ -136,7 +140,8 @@ export function HymnCard({ entry, library, mine, onAdd, onOpenMine, onClose }: C
       <div className="placeholder-screen column">
         {error ? <span className="error-text">{error}</span> : 'Завантаження…'}
         <button type="button" className="btn" onClick={onClose}>
-          ← До списку
+          <Icon as={ArrowLeft} />
+          До списку
         </button>
       </div>
     );
@@ -166,11 +171,13 @@ export function HymnCard({ entry, library, mine, onAdd, onOpenMine, onClose }: C
         <>
           {mine ? (
             <button type="button" className="btn" onClick={() => onOpenMine(mine)}>
-              ✓ У моїх піснях
+              <Icon as={Check} />
+              У моїх піснях
             </button>
           ) : (
             <button type="button" className="btn primary" onClick={() => onAdd(song, { key, capo })}>
-              + Додати в мої пісні
+              <Icon as={Plus} />
+              Додати в мої пісні
             </button>
           )}
           {close}

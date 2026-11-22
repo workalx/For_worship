@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { frequencyToNote, GUITAR_STRINGS, nearestString } from './notes';
 import { useTuner } from './useTuner';
+import { Icon } from '../components/Icon';
+import { Mic } from 'lucide-react';
 import './Tuner.css';
 
 const IN_TUNE_CENTS = 5;
@@ -49,6 +51,7 @@ export function TunerScreen() {
         {error && <div className="error-text">{error}</div>}
         {!running ? (
           <button type="button" className="btn primary big-btn" onClick={() => void start()}>
+            <Icon as={Mic} size={20} />
             Увімкнути мікрофон
           </button>
         ) : (

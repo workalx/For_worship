@@ -65,7 +65,7 @@ describe('масовий імпорт', () => {
   });
 });
 
-describe('кнопка «📂 Імпорт файлів»', () => {
+describe('кнопка «Імпорт файлів»', () => {
   const noLibrary: LibraryLoader = { loadIndex: () => new Promise(() => {}), loadSong: () => new Promise(() => {}) };
 
   test('імпортує вибрані файли, показує звіт і нові пісні в списку', async () => {
