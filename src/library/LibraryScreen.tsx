@@ -15,6 +15,7 @@ import { SettingsScreen } from '../settings/SettingsScreen';
 import { HymnCard, HymnResults, useLibraryIndex, type LibraryLoader } from './HymnLibrary';
 import { libraryLoader, librarySongToInput } from './libraryData';
 import type { LibraryIndexEntry, LibrarySong } from './catalogTypes';
+import { IMPORT_ACCEPT, importSongFiles, type ImportReport } from './bulkImport';
 import type { AiError, SongCandidate } from '../ai/provider';
 import './Library.css';
 import '../settings/Settings.css';
@@ -87,6 +88,9 @@ export function LibraryScreen({ onPlay, onSongShown, shared, library = libraryLo
   const searchCache = useRef(new Map<string, SongCandidate[]>());
   const [aiError, setAiError] = useState<AiError | null>(null);
   const hymns = useLibraryIndex(library);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const [importReport, setImportReport] = useState<ImportReport | null>(null);
   const addedFromLibrary = useMemo(
     () => new Map(allSongs.filter((s) => s.libraryId).map((s) => [s.libraryId!, s] as const)),
     [allSongs],
@@ -154,6 +158,22 @@ export function LibraryScreen({ onPlay, onSongShown, shared, library = libraryLo
     } catch (e) {
       setToast(e instanceof Error ? e.message : 'Не вдалося додати пісню');
       return null;
+    }
+  };
+
+  /** Масовий імпорт файлів .cho / .chordpro / .txt у «Мої пісні» (лише на цьому пристрої). */
+  const importFiles = async (files: File[]) => {
+    if (!files.length) return;
+    setImporting(true);
+    try {
+      const report = await importSongFiles(files, allSongs);
+      setImportReport(report);
+      setToast(`Імпортовано пісень: ${report.added.length}${report.skipped.length ? `, пропущено: ${report.skipped.length}` : ''}`);
+      await reload();
+    } catch (e) {
+      setToast(e instanceof Error ? e.message : 'Не вдалося імпортувати файли');
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -323,7 +343,44 @@ export function LibraryScreen({ onPlay, onSongShown, shared, library = libraryLo
             <button type="button" className="btn" onClick={() => void pasteFromClipboard()}>
               📋 Вставити з буфера
             </button>
+            <button type="button" className="btn" disabled={importing} onClick={() => fileInput.current?.click()}>
+              {importing ? 'Імпортую…' : '📂 Імпорт файлів'}
+            </button>
+            <input
+              ref={fileInput}
+              type="file"
+              multiple
+              accept={IMPORT_ACCEPT}
+              hidden
+              aria-label="Імпорт файлів пісень"
+              onChange={(e) => {
+                const files = [...(e.target.files ?? [])];
+                e.target.value = '';
+                void importFiles(files);
+              }}
+            />
           </div>
+          {importReport && (
+            <div className="online-status import-report">
+              <div>
+                Імпортовано пісень: <b>{importReport.added.length}</b>
+                {importReport.skipped.length > 0 && <>, пропущено: <b>{importReport.skipped.length}</b></>}. Пісні
+                зберігаються лише на цьому пристрої.
+              </div>
+              {importReport.skipped.length > 0 && (
+                <ul>
+                  {importReport.skipped.map((x, i) => (
+                    <li key={i}>
+                      {x.name} — {x.reason}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <button type="button" className="btn" onClick={() => setImportReport(null)}>
+                Сховати
+              </button>
+            </div>
+          )}
           {aiError && (
             <div className="online-status">
               <div className="error-text">{aiError.message}</div>
