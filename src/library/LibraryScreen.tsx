@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { deleteSong, getSong, listServices, listSongs, saveService, saveSong, type Service, type Song } from '../db/db';
 import { guessKey } from '../music/chordpro';
 import { SongScreen } from '../song/SongScreen';
@@ -12,6 +12,10 @@ import { openInBrowser } from './webSearch';
 import type { Shared } from './shareTarget';
 import { loadSettings } from '../settings/settings';
 import { SettingsScreen } from '../settings/SettingsScreen';
+import { HymnCard, HymnResults, useLibraryIndex, type LibraryLoader } from './HymnLibrary';
+import { libraryLoader, librarySongToInput } from './libraryData';
+import type { LibraryIndexEntry, LibrarySong } from './catalogTypes';
+import { IMPORT_ACCEPT, importSongFiles, type ImportReport } from './bulkImport';
 import type { AiError, SongCandidate } from '../ai/provider';
 import './Library.css';
 import '../settings/Settings.css';
@@ -20,7 +24,8 @@ type Mode =
   | { kind: 'list' }
   | { kind: 'view'; id: string }
   | { kind: 'edit'; song?: Partial<Song> }
-  | { kind: 'settings' };
+  | { kind: 'settings' }
+  | { kind: 'hymn'; entry: LibraryIndexEntry };
 
 function candidateToSong(c: SongCandidate): Partial<Song> {
   return {
@@ -29,7 +34,7 @@ function candidateToSong(c: SongCandidate): Partial<Song> {
     body: normalizeImportedText(c.body),
     originalKey: c.key,
     bpm: c.bpm,
-    source: c.source,
+    ...(c.source && /^https?:\/\//i.test(c.source) ? { sourceUrl: c.source } : { source: c.source }),
   };
 }
 
@@ -51,13 +56,15 @@ type Props = {
   onSongShown?: (song: Song) => void;
   /** Текст або посилання, якими поділилися з програмою з браузера. */
   shared?: Shared | null;
+  /** Вбудована бібліотека гімнів (для тестів можна підставити свою). */
+  library?: LibraryLoader;
 };
 
 function hasGeminiKey(): boolean {
   return loadSettings().geminiKey.trim() !== '';
 }
 
-export function LibraryScreen({ onPlay, onSongShown, shared }: Props) {
+export function LibraryScreen({ onPlay, onSongShown, shared, library = libraryLoader }: Props) {
   const [mode, setMode] = useState<Mode>(() =>
     shared?.kind === 'text'
       ? { kind: 'edit', song: songFromPastedText(shared.text, shared.title, shared.source) }
@@ -80,6 +87,14 @@ export function LibraryScreen({ onPlay, onSongShown, shared }: Props) {
   const [toDelete, setToDelete] = useState<{ id: string; title: string } | null>(null);
   const searchCache = useRef(new Map<string, SongCandidate[]>());
   const [aiError, setAiError] = useState<AiError | null>(null);
+  const hymns = useLibraryIndex(library);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const [importReport, setImportReport] = useState<ImportReport | null>(null);
+  const addedFromLibrary = useMemo(
+    () => new Map(allSongs.filter((s) => s.libraryId).map((s) => [s.libraryId!, s] as const)),
+    [allSongs],
+  );
 
   const reload = useCallback(async () => {
     const [found, all, services] = await Promise.all([listSongs(query), listSongs(), listServices()]);
@@ -131,6 +146,50 @@ export function LibraryScreen({ onPlay, onSongShown, shared }: Props) {
     else setMode({ kind: 'list' });
   };
 
+  /** «Додати в мої пісні»: пісня з бібліотеки стає звичайною піснею користувача. */
+  const addHymn = async (entry: LibraryIndexEntry, loaded?: LibrarySong, view?: { key?: string; capo?: number }) => {
+    try {
+      const song = loaded ?? (await library.loadSong(entry));
+      const saved = await saveSong({ ...librarySongToInput(song), key: view?.key, capo: view?.capo || undefined });
+      setAllSongs((list) => [...list, saved]);
+      setToast(`«${saved.title}» додано в мої пісні`);
+      await reload();
+      return saved;
+    } catch (e) {
+      setToast(e instanceof Error ? e.message : 'Не вдалося додати пісню');
+      return null;
+    }
+  };
+
+  /** Масовий імпорт файлів .cho / .chordpro / .txt у «Мої пісні» (лише на цьому пристрої). */
+  const importFiles = async (files: File[]) => {
+    if (!files.length) return;
+    setImporting(true);
+    try {
+      const report = await importSongFiles(files, allSongs);
+      setImportReport(report);
+      setToast(`Імпортовано пісень: ${report.added.length}${report.skipped.length ? `, пропущено: ${report.skipped.length}` : ''}`);
+      await reload();
+    } catch (e) {
+      setToast(e instanceof Error ? e.message : 'Не вдалося імпортувати файли');
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const searchOnline = () => {
+    const q = query.trim();
+    if (!q) return;
+    if (!hasGeminiKey()) {
+      searchInBrowser(q);
+      return;
+    }
+    setBrowserHint(false);
+    setAiError(null);
+    searchCache.current.delete(q);
+    setOnline((prev) => ({ query: q, nonce: (prev?.nonce ?? 0) + 1 }));
+  };
+
   const searchInBrowser = (q: string) => {
     setAiError(null);
     setOnline(null);
@@ -153,6 +212,25 @@ export function LibraryScreen({ onPlay, onSongShown, shared }: Props) {
     }
     setMode({ kind: 'edit', song: songFromPastedText(text, query.trim()) });
   };
+
+  if (mode.kind === 'hymn') {
+    return (
+      <>
+        <HymnCard
+          entry={mode.entry}
+          library={library}
+          mine={addedFromLibrary.get(mode.entry.id)}
+          onAdd={async (song, view) => {
+            const saved = await addHymn(mode.entry, song, view);
+            if (saved) setMode({ kind: 'view', id: saved.id });
+          }}
+          onOpenMine={(s) => setMode({ kind: 'view', id: s.id })}
+          onClose={() => setMode({ kind: 'list' })}
+        />
+        {toast && <div className="toast">{toast}</div>}
+      </>
+    );
+  }
 
   if (mode.kind === 'settings') {
     return <SettingsScreen onClose={() => setMode({ kind: 'list' })} />;
@@ -250,24 +328,6 @@ export function LibraryScreen({ onPlay, onSongShown, shared }: Props) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
-            <button
-              type="button"
-              className="btn blue"
-              disabled={!query.trim()}
-              onClick={() => {
-                const q = query.trim();
-                if (!hasGeminiKey()) {
-                  searchInBrowser(q);
-                  return;
-                }
-                setBrowserHint(false);
-                setAiError(null);
-                searchCache.current.delete(q);
-                setOnline((prev) => ({ query: q, nonce: (prev?.nonce ?? 0) + 1 }));
-              }}
-            >
-              🔍 В інтернеті
-            </button>
             <PhotoImport
               onResult={(c) => {
                 setAiError(null);
@@ -283,16 +343,42 @@ export function LibraryScreen({ onPlay, onSongShown, shared }: Props) {
             <button type="button" className="btn" onClick={() => void pasteFromClipboard()}>
               📋 Вставити з буфера
             </button>
-            <button type="button" className="btn" disabled={!query.trim()} onClick={() => searchInBrowser(query.trim())}>
-              🌐 У браузері
+            <button type="button" className="btn" disabled={importing} onClick={() => fileInput.current?.click()}>
+              {importing ? 'Імпортую…' : '📂 Імпорт файлів'}
             </button>
+            <input
+              ref={fileInput}
+              type="file"
+              multiple
+              accept={IMPORT_ACCEPT}
+              hidden
+              aria-label="Імпорт файлів пісень"
+              onChange={(e) => {
+                const files = [...(e.target.files ?? [])];
+                e.target.value = '';
+                void importFiles(files);
+              }}
+            />
           </div>
-          {browserHint && (
-            <div className="online-status">
+          {importReport && (
+            <div className="online-status import-report">
               <div>
-                Пошук відкрито в браузері. Знайдіть пісню, виділіть і скопіюйте текст з акордами, поверніться сюди
-                й натисніть «📋 Вставити з буфера». Або виділіть текст і виберіть «Поділитися» → For Worship.
+                Імпортовано пісень: <b>{importReport.added.length}</b>
+                {importReport.skipped.length > 0 && <>, пропущено: <b>{importReport.skipped.length}</b></>}. Пісні
+                зберігаються лише на цьому пристрої.
               </div>
+              {importReport.skipped.length > 0 && (
+                <ul>
+                  {importReport.skipped.map((x, i) => (
+                    <li key={i}>
+                      {x.name} — {x.reason}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <button type="button" className="btn" onClick={() => setImportReport(null)}>
+                Сховати
+              </button>
             </div>
           )}
           {aiError && (
@@ -304,29 +390,6 @@ export function LibraryScreen({ onPlay, onSongShown, shared }: Props) {
                 </button>
               ) : null}
             </div>
-          )}
-          {online !== null && (
-            <>
-              <button type="button" className="btn" style={{ alignSelf: 'flex-start' }} onClick={() => setOnline(null)}>
-                ← Сховати результати пошуку
-              </button>
-              <OnlineSearch
-                query={online.query}
-                nonce={online.nonce}
-                cache={searchCache.current}
-                onPick={(c) => {
-                  setMode({ kind: 'edit', song: candidateToSong(c) });
-                }}
-                onManual={() => {
-                  setOnline(null);
-                  setMode({ kind: 'edit', song: { title: online.query } });
-                }}
-                onSettings={() => {
-                  setOnline(null);
-                  setMode({ kind: 'settings' });
-                }}
-              />
-            </>
           )}
           <div className="panel-tag">Мої пісні</div>
           {songs.length === 0 && (
@@ -356,6 +419,55 @@ export function LibraryScreen({ onPlay, onSongShown, shared }: Props) {
               </div>
             );
           })}
+          <HymnResults
+            query={query}
+            entries={hymns.entries}
+            error={hymns.error}
+            search={hymns.search}
+            added={addedFromLibrary}
+            onOpen={(entry) => setMode({ kind: 'hymn', entry })}
+            onAdd={(entry) => void addHymn(entry)}
+            onOpenMine={(s) => setMode({ kind: 'view', id: s.id })}
+          />
+          <div className="row">
+            <button type="button" className="btn blue" disabled={!query.trim()} onClick={searchOnline}>
+              🔍 Шукати в інтернеті
+            </button>
+            <button type="button" className="btn" disabled={!query.trim()} onClick={() => searchInBrowser(query.trim())}>
+              🌐 У браузері
+            </button>
+          </div>
+          {browserHint && (
+            <div className="online-status">
+              <div>
+                Пошук відкрито в браузері. Знайдіть пісню, виділіть і скопіюйте текст з акордами, поверніться сюди
+                й натисніть «📋 Вставити з буфера». Або виділіть текст і виберіть «Поділитися» → For Worship.
+              </div>
+            </div>
+          )}
+          {online !== null && (
+            <>
+              <button type="button" className="btn" style={{ alignSelf: 'flex-start' }} onClick={() => setOnline(null)}>
+                ← Сховати результати пошуку
+              </button>
+              <OnlineSearch
+                query={online.query}
+                nonce={online.nonce}
+                cache={searchCache.current}
+                onPick={(c) => {
+                  setMode({ kind: 'edit', song: candidateToSong(c) });
+                }}
+                onManual={() => {
+                  setOnline(null);
+                  setMode({ kind: 'edit', song: { title: online.query } });
+                }}
+                onSettings={() => {
+                  setOnline(null);
+                  setMode({ kind: 'settings' });
+                }}
+              />
+            </>
+          )}
         </div>
         <div className="panel" style={{ flex: 1 }}>
           {service ? (

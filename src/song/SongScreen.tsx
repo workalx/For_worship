@@ -46,6 +46,11 @@ export function SongScreen({ song, displayKey, onKeyChange, onCapoChange, subtit
         )}
         <div className="topbar-title">
           {song.title}
+          {song.chordsOrigin === 'auto' && (
+            <span className="badge-auto" title="Акорди визначено автоматично з нот і можуть бути неточними. Виправити — ✎">
+              автоакорди
+            </span>
+          )}
           {subtitle && <small>{subtitle}</small>}
         </div>
         {actions}

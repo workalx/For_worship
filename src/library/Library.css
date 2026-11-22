@@ -25,3 +25,7 @@
   flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 0;
   background: none; border: none; color: inherit; text-align: left;
 }
+
+.library-hint { color: var(--muted); font-size: 13px; margin: 4px 0; }
+.import-report ul { margin: 0; padding-left: 18px; font-size: 13px; }
+.import-report b { color: var(--text); }

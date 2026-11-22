@@ -2,6 +2,8 @@ import Dexie, { type Table } from 'dexie';
 
 export type TimeSig = '4/4' | '3/4' | '6/8';
 
+export type ChordsOrigin = 'auto' | 'manual';
+
 export type Song = {
   id: string;
   title: string;
@@ -13,7 +15,16 @@ export type Song = {
   bpm?: number;
   timeSig?: TimeSig;
   capo?: number;
+  /** Звідки пісня: назва джерела («Open Hymnal Project», «фото»). Адреса сторінки — у sourceUrl. */
   source?: string;
+  /** Адреса сторінки, з якої взято пісню. */
+  sourceUrl?: string;
+  /** Ліцензія тексту й музики, якщо відома («public domain»). */
+  license?: string;
+  /** Звідки акорди: 'auto' — згенеровані програмою, 'manual' — з джерела або від користувача. */
+  chordsOrigin?: ChordsOrigin;
+  /** id пісні у вбудованій бібліотеці, якщо пісню додано звідти (щоб не додати двічі). */
+  libraryId?: string;
   createdAt: number;
   updatedAt: number;
 };
@@ -24,12 +35,42 @@ export type Service = { id: string; title: string; /** YYYY-MM-DD */ date: strin
 
 export type SongInput = Omit<Song, 'id' | 'createdAt' | 'updatedAt'> & { id?: string; createdAt?: number };
 
-class WorshipDb extends Dexie {
+const isUrl = (v: unknown): v is string => typeof v === 'string' && /^https?:\/\/\S+$/i.test(v.trim());
+
+/**
+ * Приводить збережену пісню до поточної схеми. До версії 2 адреса сторінки лежала в `source`;
+ * тепер вона в `sourceUrl`, а `source` — назва джерела. Невідоме значення chordsOrigin прибирається.
+ * Використовується в міграції бази та під час відновлення з резервної копії.
+ */
+export function normalizeStoredSong<T extends Partial<Song>>(song: T): T {
+  const s: T = { ...song };
+  if (isUrl(s.source)) {
+    if (!s.sourceUrl) s.sourceUrl = s.source.trim();
+    delete s.source;
+  }
+  if (s.chordsOrigin !== undefined && s.chordsOrigin !== 'auto' && s.chordsOrigin !== 'manual') delete s.chordsOrigin;
+  return s;
+}
+
+export class WorshipDb extends Dexie {
   songs!: Table<Song, string>;
   services!: Table<Service, string>;
-  constructor() {
-    super('for-worship');
+  constructor(name = 'for-worship') {
+    super(name);
     this.version(1).stores({ songs: 'id, title, updatedAt', services: 'id, date' });
+    // Версія 2: індекси ті самі, лише переносимо адресу сторінки з source у sourceUrl.
+    this.version(2)
+      .stores({ songs: 'id, title, updatedAt', services: 'id, date' })
+      .upgrade((tx) =>
+        tx
+          .table('songs')
+          .toCollection()
+          .modify((song: Song) => {
+            const n = normalizeStoredSong(song);
+            for (const k of Object.keys(song) as (keyof Song)[]) if (!(k in n)) delete song[k];
+            Object.assign(song, n);
+          }),
+      );
   }
 }
 
