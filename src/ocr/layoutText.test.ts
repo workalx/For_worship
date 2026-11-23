@@ -26,7 +26,7 @@ describe('ocrToCandidate geometry', () => {
       { words: words, y0: 60 },
     ]);
     expect(c.title).toBe('Назва');
-    expect(c.body).toMatch(/в моїй те\[Am\]мряві завжди$/);
+    expect(c.body).toMatch(/в моїй тем\[Am\]ряві завжди$/);
   });
 
   it('chord font wider than lyrics still lands on the right word', () => {
