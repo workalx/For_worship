@@ -8,18 +8,21 @@ function assetUrl(path: string): string {
 }
 
 type RawWord = { text: string; confidence?: number; bbox: { x0: number; x1: number } };
-type RawLine = { words?: RawWord[] };
+type RawLine = { words?: RawWord[]; bbox?: { y0: number; y1: number } };
 type RawBlocks = { paragraphs?: { lines?: RawLine[] }[] }[] | null | undefined;
 
 function toOcrLines(blocks: RawBlocks): OcrLine[] {
   const out: OcrLine[] = [];
   for (const block of blocks ?? []) {
     for (const par of block.paragraphs ?? []) {
+      let first = true;
       for (const line of par.lines ?? []) {
         const words = (line.words ?? [])
           .filter((w) => w.text.trim() !== '' && (w.confidence ?? 100) >= MIN_CONFIDENCE)
           .map((w) => ({ text: w.text.trim(), x0: w.bbox.x0, x1: w.bbox.x1 }));
-        if (words.length) out.push({ words });
+        if (!words.length) continue;
+        out.push({ words, y0: line.bbox?.y0, y1: line.bbox?.y1, paragraphStart: first || undefined });
+        first = false;
       }
     }
   }
