@@ -46,3 +46,28 @@ test('shiftKey пише тональність як в ALL_KEYS і зберіг�
   expect(shiftKey('B', 1)).toBe('C');
   expect(shiftKey('F#m', 0)).toBe('F#m');
 });
+
+describe('форми акордів SongSelect', () => {
+  test.each([
+    ['D/F#', 2, false, 'E/G#'],
+    ['G/B', 1, true, 'Ab/C'],
+    ['Bb/F', 2, false, 'C/G'],
+    ['Gsus', 2, false, 'Asus'],
+    ['Asus4', -2, false, 'Gsus4'],
+    ['A7sus4', 3, true, 'C7sus4'],
+    ['C2', 3, true, 'Eb2'],
+    ['Dadd9', 1, true, 'Ebadd9'],
+    ['Fmaj7', 2, false, 'Gmaj7'],
+    ['Bm7b5', 1, false, 'Cm7b5'],
+    ['F#dim7', -1, false, 'Fdim7'],
+    ['Eaug', 1, true, 'Faug'],
+    ['Bbm', 2, false, 'Cm'],
+    ['C#m7', 1, false, 'Dm7'],
+  ] as const)('%s на %i (бемолі: %s) → %s', (chord, n, flats, expected) => {
+    expect(transposeChord(chord, n, flats)).toBe(expected);
+  });
+
+  test.each(['N.C.', '(2x)', '|', 'x2'])('%s не змінюється', (s) => {
+    expect(transposeChord(s, 3, false)).toBe(s);
+  });
+});
