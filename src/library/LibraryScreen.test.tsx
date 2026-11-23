@@ -183,13 +183,16 @@ test('той самий openSongId з новим nonce відкриває піс
 
 test('«Шукати на SongSelect» відкриває пошук SongSelect у новій вкладці', async () => {
   const open = vi.spyOn(window, 'open').mockImplementation(() => null);
-  render(<LibraryScreen onPlay={() => {}} />);
-  await userEvent.type(await screen.findByLabelText('Пошук пісні'), 'Amazing Grace');
-  await userEvent.click(screen.getByRole('button', { name: 'Шукати на SongSelect' }));
-  expect(open).toHaveBeenCalledWith(
-    'https://songselect.ccli.com/search/results?search=Amazing%20Grace',
-    '_blank',
-    'noopener',
-  );
-  open.mockRestore();
+  try {
+    render(<LibraryScreen onPlay={() => {}} />);
+    await userEvent.type(await screen.findByLabelText('Пошук пісні'), 'Amazing Grace');
+    await userEvent.click(screen.getByRole('button', { name: 'Шукати на SongSelect' }));
+    expect(open).toHaveBeenCalledWith(
+      'https://songselect.ccli.com/search/results?search=Amazing%20Grace',
+      '_blank',
+      'noopener',
+    );
+  } finally {
+    open.mockRestore();
+  }
 });
