@@ -2,11 +2,13 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import { tesseractAssets } from './vite/tesseractAssets';
 
 export default defineConfig({
   base: process.env.VITE_BASE ?? '/',
   plugins: [
     react(),
+    tesseractAssets(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icons/apple-touch-icon.png'],
@@ -34,20 +36,10 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,png,svg,ico,woff2}'],
+        globPatterns: ['**/*.{js,css,html,png,svg,ico,woff2}', 'tesseract/**/*.{js,gz}'],
+        maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         navigateFallback: 'index.html',
         runtimeCaching: [
-          {
-            // Частини з повними піснями кешуються при першому відкритті. Назва містить хеш вмісту,
-            // тож кеш ніколи не застаріває; старі версії витісняються.
-            urlPattern: ({ url }) => /\/library\/songs-[^/]+\.json$/.test(url.pathname),
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'fw-library-songs',
-              expiration: { maxEntries: 80 },
-              cacheableResponse: { statuses: [200] },
-            },
-          },
           {
             urlPattern: ({ url }) => url.hostname === 'generativelanguage.googleapis.com',
             handler: 'NetworkOnly',
