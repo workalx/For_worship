@@ -42,7 +42,7 @@
   }
 
   function isResultMessage(data) {
-    return !!data && typeof data === 'object' && data.type === RESULT_TYPE && data.version === VERSION && typeof data.ok === 'boolean';
+    return !!data && typeof data === 'object' && data.type === RESULT_TYPE && data.version === VERSION && typeof data.ccliNumber === 'string' && data.ccliNumber !== '' && typeof data.ok === 'boolean';
   }
 
   globalThis.ForWorshipExt = {

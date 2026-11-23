@@ -86,7 +86,7 @@ test('успішний імпорт надсилає результат ok з н
   const off = listenForSongSelect(vi.fn(), vi.fn());
   post(msg(SONGSELECT_SAMPLE_HTML));
   await vi.waitFor(() => expect(results).toHaveLength(1));
-  expect(results[0]).toMatchObject({ type: 'for-worship/songselect-result', version: 1, ok: true });
+  expect(results[0]).toMatchObject({ type: 'for-worship/songselect-result', version: 1, ccliNumber: '1234567', ok: true });
   expect(typeof (results[0] as { title: string }).title).toBe('string');
   off();
   stop();
@@ -97,7 +97,7 @@ test('помилка розбору надсилає результат ok:false
   const off = listenForSongSelect(vi.fn(), vi.fn());
   post(msg('<html><body><p>без назви</p></body></html>'));
   await vi.waitFor(() => expect(results).toHaveLength(1));
-  expect(results[0]).toMatchObject({ ok: false });
+  expect(results[0]).toMatchObject({ ok: false, ccliNumber: '1234567' });
   expect(typeof (results[0] as { error: string }).error).toBe('string');
   off();
   stop();
@@ -116,7 +116,26 @@ test('сторонні та хибні повідомлення не дають 
 });
 
 test('isSongSelectResult перевіряє форму', () => {
-  expect(isSongSelectResult({ type: 'for-worship/songselect-result', version: 1, ok: true, title: 'x' })).toBe(true);
-  expect(isSongSelectResult({ type: 'for-worship/songselect-result', version: 2, ok: true })).toBe(false);
+  expect(isSongSelectResult({ type: 'for-worship/songselect-result', version: 1, ccliNumber: '1', ok: true, title: 'x' })).toBe(true);
+  expect(isSongSelectResult({ type: 'for-worship/songselect-result', version: 1, ok: true, title: 'x' })).toBe(false);
+  expect(isSongSelectResult({ type: 'for-worship/songselect-result', version: 2, ccliNumber: '1', ok: true })).toBe(false);
   expect(isSongSelectResult(null)).toBe(false);
+});
+
+test('швидкі однакові повідомлення — один імпорт, один onImported, один рядок', async () => {
+  const { results, stop } = collectResults();
+  const onImported = vi.fn();
+  const off = listenForSongSelect(onImported, vi.fn());
+  post(msg(SONGSELECT_SAMPLE_HTML));
+  post(msg(SONGSELECT_SAMPLE_HTML));
+  post(msg(SONGSELECT_SAMPLE_HTML));
+  await vi.waitFor(() => expect(results.length).toBeGreaterThanOrEqual(1));
+  await new Promise((r) => setTimeout(r, 100));
+  post(msg(SONGSELECT_SAMPLE_HTML)); // пізній дубль: повторює результат, але не імпорт
+  await new Promise((r) => setTimeout(r, 100));
+  expect(onImported).toHaveBeenCalledTimes(1);
+  expect(await db.songs.count()).toBe(1);
+  expect(results.length).toBeGreaterThanOrEqual(2);
+  off();
+  stop();
 });

@@ -46,18 +46,16 @@ async function trySend(tabId, msg) {
   for (var i = 0; i < RETRIES; i++) {
     try {
       var res = await chrome.tabs.sendMessage(tabId, msg);
+      // Будь-яка відповідь моста (успіх, помилка імпорту, timeout) остаточна.
       if (res && res.ok) return { ok: true };
-      if (res && res.error) {
-        lastError = res.error;
-        // Програма відповіла помилкою імпорту — повтор не допоможе (таймаут — інша річ).
-        if (res.error !== 'timeout') return { ok: false, error: lastError };
-      }
+      return { ok: false, error: (res && res.error) || lastError };
     } catch (e) {
+      // Немає отримувача (content script ще не завантажено) — короткі повтори.
       lastError = e && e.message ? e.message : String(e);
     }
     await sleep(RETRY_DELAY_MS);
   }
-  return { ok: false, error: lastError };
+  return { ok: false, error: lastError, noReceiver: true };
 }
 
 async function deliver(msg) {
@@ -68,7 +66,7 @@ async function deliver(msg) {
     await waitForComplete(tab.id);
   }
   var result = await trySend(tab.id, msg);
-  if (!result.ok && existing) {
+  if (!result.ok && result.noReceiver && existing) {
     // Вкладка, відкрита до встановлення розширення, не має content script — перезавантажуємо й пробуємо ще раз.
     await chrome.tabs.reload(tab.id);
     await waitForComplete(tab.id);

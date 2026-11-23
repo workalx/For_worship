@@ -21,6 +21,7 @@ chrome.runtime.onMessage.addListener(function (msg, _sender, sendResponse) {
 
   function onResult(event) {
     if (event.origin !== location.origin || !ext.isResultMessage(event.data)) return;
+    if (event.data.ccliNumber !== msg.ccliNumber) return;
     finish({ ok: event.data.ok, error: event.data.error });
   }
 
