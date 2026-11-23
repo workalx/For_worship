@@ -1,6 +1,6 @@
 # Імпорт пісень із SongSelect одною кнопкою — дизайн
 
-Дата: 2026-11-22. Статус: затверджено.
+Дата: 2026-11-22. Статус: затверджено; переглянуто 2026-11-22 (джерело — аркуш акордів, не експорт ChordPro).
 
 ## Навіщо
 
@@ -41,20 +41,28 @@
 
 - Пошук: `https://songselect.ccli.com/search/results?search=<назва>`.
 - Сторінка акордів: `https://songselect.ccli.com/songs/<номер>/<slug>/viewchordsheet`.
-  Показує назву, авторів, номер пісні, тональність за замовчуванням.
-- Акорди сторінка вантажить із `/api/GetSongChordsHTML?songNumber=…&key=…&style=Standard&columns=…`.
-- У меню завантаження є власна кнопка SongSelect «Download ChordPro®»
-  (`#chordSheetDownloadChordProButton`). Ендпоінт, який вона викликає, ще треба з'ясувати
-  на першому кроці реалізації (з дозволу користувача завантажити один файл).
+- Офіційний експорт ChordPro (`GET /api/GetSongChordPro?songNumber=&key=&style=&columns=`) доступний
+  лише в підписці Premium. Акаунт користувача його не має (`products.chordPro.authorized = false`),
+  перегляд акордів є (`products.chords.authorized = true`).
+- Аркуш акордів сторінка отримує з `GET /api/GetSongChordsHTML?songNumber=&key=&style=Standard&columns=1&enableFontCustomization=0`
+  (cookie сторінки). Відповідь — JSON `{ payload: string, isSuccess: boolean, … }`, де `payload` — HTML:
+  - `.cproTitle` — назва; `.cproAuthors` — автори; `.cproAuthor2` — примітка до авторів (ігноруємо);
+  - `code.cproSongKey[data-chordname]` — тональність; `.cproTempoTimeWrapper` — «Tempo - 60 | Time - 4/4»;
+  - `pre.cproSongBody > .cproSongSection`: `.cproComment` (назва частини: «Verse 1», «Chorus»)
+    і рядки `.cproSongLine`; у рядку текстові вузли, `.chordWrapper` = `code.chord[data-chordname]`
+    (повна назва акорду; видимий текст може мати `<sup>`) + `.chordLyrics` (склад під акордом),
+    і `.cproDirectionWrapper > .cproDirection` («(To Chorus)»);
+  - `.copyright-info`: `.songnumber` («CCLI Song # 4768151»), `ul.copyright > li` (©, видавці),
+    `.disclaimer`, `.licenseno` (номер ліцензії церкви — не зберігаємо).
+- Рішення користувача (2026-11-22): перетворювати цей аркуш у ChordPro, попри те, що це обходить
+  платну функцію експорту й може суперечити умовам SongSelect; ризик для акаунта користувач приймає.
 
 ## Підходи
 
-1. **Розширення Chrome з кнопкою на SongSelect** — обрано. Одна кнопка, як хоче користувач;
-   бере пісню через власний експорт ChordPro сайту. Мінуси: ручне встановлення, залежність від
-   розмітки SongSelect.
-2. Програма стежить за папкою «Завантаження» (File System Access API). Без розширення й без
-   залежності від розмітки, але дві дії на сайті, лише Chrome/Edge, дозвіл на папку.
-3. Серверний парсер із логіном користувача — відкинуто (анти-ціль, умови CCLI).
+1. **Розширення Chrome з кнопкою на SongSelect, джерело — аркуш акордів (HTML)** — обрано.
+2. Те саме з офіційним експортом ChordPro — потребує Premium, відкладено.
+3. Програма стежить за папкою «Завантаження» — немає файлу ChordPro без Premium, відпадає.
+4. Серверний парсер із логіном користувача — відкинуто (анти-ціль).
 
 ## Дизайн
 
@@ -63,30 +71,30 @@
 `search/results?search=<запит>` з поточного тексту пошуку.
 
 ### Розширення `extension/` (Manifest V3, у цьому репозиторії)
-- Content script на `https://songselect.ccli.com/songs/*/viewchordsheet` (сторінка — SPA, тож
-  стежить за зміною адреси) додає кнопку «Додати в For Worship» поруч із діями аркуша.
-- Після натискання: отримує ChordPro-текст через той самий запит, що й «Download ChordPro®»
-  (з cookie сторінки, бо скрипт працює на songselect.com), плюс номер CCLI й адресу сторінки.
-  Якщо ChordPro недоступний — показує помилку на кнопці, нічого не вигадує.
-- Передача в програму: service worker розширення шукає відкриту вкладку програми (дозволені
-  адреси), інакше відкриває її; content script на адресі програми отримує повідомлення
-  й передає його сторінці через `window.postMessage` з перевіркою origin.
+- Content script на `https://songselect.ccli.com/*`; сторінка — SPA, тож стежить за зміною адреси й
+  на `/songs/<номер>/<slug>/viewchordsheet` додає кнопку «Додати в For Worship».
+- Після натискання: бере тональність, вибрану на сторінці (`#ChordSheetTransposeKeySelectInput`, інакше
+  `code.cproSongKey` на сторінці), запитує `GetSongChordsHTML` з цією тональністю, `columns=1`,
+  `style=Standard`, `enableFontCustomization=0`; при `isSuccess !== true` — «Помилка».
+  Перетворення HTML не робить: передає `payload` як є.
+- Передача: service worker шукає відкриту вкладку програми, інакше відкриває її; content script на
+  адресі програми передає дані сторінці через `window.postMessage` з перевіркою origin.
 - Кнопка показує стан: «Додаю…», «Додано ✓», «Помилка».
 
 ### Приймання в програмі
-- Модуль у `src/library/` слухає `message`, приймає лише повідомлення від content script
-  розширення (власний тип/версія, origin = origin програми).
-- Розбір через наявний `parseChordProFile` (`src/music/chordproFile.ts`), збереження через `saveSong`:
-  `source: 'SongSelect'`, `sourceUrl`, `originalKey` з `{key}`, `chordsOrigin: 'manual'`,
-  номер CCLI. Для номера — нове необов'язкове поле `ccliNumber` у `Song` (без нової версії
-  індексів Dexie, бо поле не індексується).
-- Повтор: якщо пісня з таким `ccliNumber` уже є — оновлюємо її (той самий `id`), не дублюємо.
+- Повідомлення: `{ type: 'for-worship/songselect-import', version: 1, html, pageUrl, ccliNumber }`.
+- `parseSongSelectHtml` (DOMParser) будує ChordPro-текст: частина → `{c: <назва>}`, рядок → текст з
+  `[акорд]` перед складом (`data-chordname`), напрямки «(To Chorus)» лишаються текстом, порожній
+  рядок між частинами. Метадані: назва, автори → `artist`, тональність → `originalKey`, темп/розмір,
+  `ul.copyright li` через « | » → `license`, номер CCLI. Дисклеймер і номер ліцензії церкви — не беремо.
+- Збереження через `saveSong`: `source: 'SongSelect'`, `sourceUrl`, `chordsOrigin: 'manual'`,
+  `ccliNumber` (нове необов'язкове поле `Song`, без зміни індексів Dexie).
+- Повтор: пісня з тим самим `ccliNumber` оновлюється (той самий `id`), вибрані користувачем `key`/`capo` лишаються.
 - Після імпорту програма відкриває пісню.
 
 ### Транспонування
-Механізм уже є (`src/music/chords.ts`, `transposeDoc`). Додаємо тести на реальних акордах
-SongSelect: бас після `/`, `sus2/sus4`, `add9`, `maj7`, `m7b5`, `dim`, `aug`, бемольні
-тональності (Eb, Ab, Bb), мінорні тональності. Виправляємо, що впаде.
+Механізм уже є (`src/music/chords.ts`, `transposeDoc`). Додаємо тести на акордах SongSelect
+(бас після `/`, `sus`, `add9`, `maj7`, `m7b5`, `dim`, `aug`, бемольні й мінорні тональності). Виправляємо, що впаде.
 
 ## Що лишається на розсуд виконавця
 - Точний вигляд кнопки на SongSelect (у стилі їхньої панелі дій).
