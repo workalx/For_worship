@@ -23,18 +23,50 @@ async function shrink(file: File): Promise<Blob> {
   }
 }
 
-type Props = { onResult: (c: SongCandidate) => void; onError: (e: AiError) => void };
+type Props = {
+  onResult: (c: SongCandidate, via: 'gemini' | 'tesseract') => void;
+  onError: (e: AiError) => void;
+};
+
+const FALLBACK_KINDS: AiError['kind'][] = ['no-key', 'network', 'quota'];
+
+function canFallBack(e: unknown): boolean {
+  return e instanceof AiError && FALLBACK_KINDS.includes(e.kind);
+}
 
 export function PhotoImport({ onResult, onError }: Props) {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [offlineMode, setOfflineMode] = useState(false);
+  const [progress, setProgress] = useState<number | null>(null);
 
   const handle = async (file: File) => {
     setBusy(true);
+    setOfflineMode(false);
+    setProgress(null);
     try {
-      const provider = getProvider();
-      const c = await provider.recognizePhoto(await shrink(file));
-      onResult({ ...c, source: c.source ?? 'фото' });
+      const image = await shrink(file);
+      let candidate: SongCandidate | null = null;
+      if (navigator.onLine !== false) {
+        try {
+          candidate = await getProvider().recognizePhoto(image);
+        } catch (e) {
+          if (!canFallBack(e)) throw e;
+        }
+      }
+      if (candidate) {
+        onResult({ ...candidate, source: candidate.source ?? 'фото' }, 'gemini');
+        return;
+      }
+      setOfflineMode(true);
+      let c: SongCandidate;
+      try {
+        const { recognizeWithTesseract } = await import('../ocr/tesseract');
+        c = await recognizeWithTesseract(image, (p) => setProgress(p));
+      } catch (e) {
+        throw e instanceof AiError ? e : new AiError('unknown', String(e));
+      }
+      onResult({ ...c, source: c.source ?? 'фото' }, 'tesseract');
     } catch (e) {
       onError(e instanceof AiError ? e : new AiError('unknown', String(e)));
     } finally {
@@ -62,7 +94,9 @@ export function PhotoImport({ onResult, onError }: Props) {
       {busy && (
         <div className="busy-overlay">
           <div className="spinner" aria-hidden="true" />
-          Розпізнаю пісню з фото…
+          {offlineMode
+            ? `Розпізнаю пісню з фото (без Gemini)…${progress != null ? ` ${Math.round(progress * 100)}%` : ''}`
+            : 'Розпізнаю пісню з фото…'}
         </div>
       )}
     </>

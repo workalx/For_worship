@@ -277,8 +277,9 @@ export function LibraryScreen({ onPlay, onSongShown, shared, openSongId, openSon
               />
             </label>
             <PhotoImport
-              onResult={(c) => {
+              onResult={(c, via) => {
                 setAiError(null);
+                if (via === 'tesseract') setToast('Розпізнано без Gemini — перевірте текст і акорди');
                 setMode({ kind: 'edit', song: candidateToSong(c) });
               }}
               onError={setAiError}
