@@ -25,6 +25,8 @@ export type Song = {
   chordsOrigin?: ChordsOrigin;
   /** id пісні у вбудованій бібліотеці, якщо пісню додано звідти (щоб не додати двічі). */
   libraryId?: string;
+  /** Номер пісні CCLI (SongSelect); за ним повторний імпорт оновлює ту саму пісню. Не індексується. */
+  ccliNumber?: string;
   createdAt: number;
   updatedAt: number;
 };

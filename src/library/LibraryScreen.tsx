@@ -9,6 +9,7 @@ import { OnlineSearch } from './OnlineSearch';
 import { PhotoImport } from './PhotoImport';
 import { normalizeImportedText, songFromPastedText } from './importText';
 import { openInBrowser } from './webSearch';
+import { songSelectSearchUrl } from '../songselect/searchUrl';
 import type { Shared } from './shareTarget';
 import { loadSettings } from '../settings/settings';
 import { SettingsScreen } from '../settings/SettingsScreen';
@@ -60,13 +61,19 @@ type Props = {
   shared?: Shared | null;
   /** Вбудована бібліотека гімнів (для тестів можна підставити свою). */
   library?: LibraryLoader;
+  /** Відкрити пісню за id (наприклад, щойно імпортовану зі SongSelect). */
+  openSongId?: string;
+  /** Змінюється за кожного нового запиту, щоб повторно відкрити ту саму пісню. */
+  openSongNonce?: number;
+  /** Запит на відкриття пісні виконано: батько має його скинути, щоб він не повторювався після перемонтування. */
+  onOpenedSong?: () => void;
 };
 
 function hasGeminiKey(): boolean {
   return loadSettings().geminiKey.trim() !== '';
 }
 
-export function LibraryScreen({ onPlay, onSongShown, shared, library = libraryLoader }: Props) {
+export function LibraryScreen({ onPlay, onSongShown, shared, library = libraryLoader, openSongId, openSongNonce, onOpenedSong }: Props) {
   const [mode, setMode] = useState<Mode>(() =>
     shared?.kind === 'text'
       ? { kind: 'edit', song: songFromPastedText(shared.text, shared.title, shared.source) }
@@ -108,6 +115,13 @@ export function LibraryScreen({ onPlay, onSongShown, shared, library = libraryLo
   useEffect(() => {
     void reload();
   }, [reload, mode]);
+
+  useEffect(() => {
+    if (!openSongId) return;
+    setMode({ kind: 'view', id: openSongId });
+    onOpenedSong?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openSongId, openSongNonce]);
 
   useEffect(() => {
     if (mode.kind !== 'view') return;
@@ -352,6 +366,14 @@ export function LibraryScreen({ onPlay, onSongShown, shared, library = libraryLo
             <button type="button" className="btn" disabled={importing} onClick={() => fileInput.current?.click()}>
               <Icon as={FolderInput} />
               {importing ? 'Імпортую…' : 'Імпорт файлів'}
+            </button>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => window.open(songSelectSearchUrl(query), '_blank', 'noopener')}
+            >
+              <Icon as={ExternalLink} />
+              Шукати на SongSelect
             </button>
             <input
               ref={fileInput}

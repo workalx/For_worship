@@ -74,3 +74,27 @@ test('при старті просить браузер зберігати ба�
   await vi.waitFor(() => expect(persist).toHaveBeenCalled());
   Object.defineProperty(navigator, 'storage', { configurable: true, value: undefined });
 });
+
+test('імпортована пісня відкривається один раз: повернення на «Пісні» показує список', async () => {
+  const { db } = await import('./db/db');
+  const { SONGSELECT_SAMPLE_HTML } = await import('./songselect/fixtures');
+  await db.songs.clear();
+  render(<App />);
+  window.dispatchEvent(
+    new MessageEvent('message', {
+      origin: window.location.origin,
+      data: {
+        type: 'for-worship/songselect-import',
+        version: 1,
+        html: SONGSELECT_SAMPLE_HTML,
+        pageUrl: 'https://songselect.ccli.com/songs/1234567/test',
+        ccliNumber: '1234567',
+      },
+    }),
+  );
+  expect(await screen.findByRole('button', { name: 'До списку пісень' })).toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: /Тюнер/ }));
+  await userEvent.click(screen.getByRole('button', { name: /Пісні/ }));
+  expect(await screen.findByLabelText('Пошук пісні')).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'До списку пісень' })).not.toBeInTheDocument();
+});
