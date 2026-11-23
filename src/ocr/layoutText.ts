@@ -16,11 +16,24 @@ export const DEFAULT_TITLE = 'Фото пісні';
 
 const HOMOGLYPHS: Record<string, string> = {
   А: 'A', В: 'B', С: 'C', Е: 'E', Н: 'H', М: 'M', К: 'K', О: 'O', Р: 'P', Т: 'T', Х: 'X',
-  а: 'a', е: 'e', с: 'c', о: 'o', р: 'p', х: 'x',
+  а: 'a', е: 'e', с: 'c', о: 'o', р: 'p', х: 'x', т: 'm', ш: 'm',
 };
 
 function toLatin(text: string): string {
   return text.replace(/[А-яЁё]/g, (ch) => HOMOGLYPHS[ch] ?? ch);
+}
+
+/** Токен для рядка акордів: кирилиця → латиниця, а мала літера A–G на початку стає великою, якщо так виходить акорд. */
+function toChordToken(text: string): string {
+  const latin = toLatin(text);
+  const up = latin.replace(/^(\(*)([a-g])/, (_m, p: string, c: string) => p + c.toUpperCase());
+  return up !== latin && isChord(up.replace(/^\(+|\)+$/g, '')) ? up : latin;
+}
+
+/** Слово (після нормалізації омогліфів) є акордом — для збереження слів із низькою впевненістю. */
+export function isChordWord(text: string): boolean {
+  const t = text.trim();
+  return isChord(t) || isChord(toChordToken(t).replace(/^\(+|\)+$/g, ''));
 }
 
 type Row = {
@@ -40,7 +53,7 @@ function makeRow(line: OcrLine): Row | null {
   let chordWords: OcrWord[] | null = null;
   if (isChordLine(joinText(words))) chordWords = words;
   else {
-    const latin = words.map((w) => ({ ...w, text: toLatin(w.text) }));
+    const latin = words.map((w) => ({ ...w, text: toChordToken(w.text) }));
     if (isChordLine(joinText(latin))) chordWords = latin;
   }
   return { words, chordWords, paragraphStart: !!line.paragraphStart };

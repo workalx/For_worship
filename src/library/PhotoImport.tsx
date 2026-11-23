@@ -64,7 +64,8 @@ export function PhotoImport({ onResult, onError }: Props) {
         const { recognizeWithTesseract } = await import('../ocr/tesseract');
         c = await recognizeWithTesseract(image, (p) => setProgress(p));
       } catch (e) {
-        throw e instanceof AiError ? e : new AiError('unknown', String(e));
+        if (e instanceof AiError && e.kind === 'empty') throw e;
+        throw new AiError('ocr', e instanceof AiError ? e.detail ?? e.message : String(e));
       }
       onResult({ ...c, source: c.source ?? 'фото' }, 'tesseract');
     } catch (e) {

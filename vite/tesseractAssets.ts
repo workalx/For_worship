@@ -22,14 +22,17 @@ function contentType(path: string): string {
 
 export function tesseractAssets(): Plugin {
   let root = process.cwd();
+  let command: 'build' | 'serve' = 'serve';
   let base = '/';
   return {
     name: 'fw-tesseract-assets',
     configResolved(config) {
       root = config.root;
       base = config.base;
+      command = config.command;
     },
     buildStart() {
+      if (command !== 'build') return;
       for (const { from, to } of TESSERACT_FILES) {
         this.emitFile({ type: 'asset', fileName: to, source: readFileSync(resolve(root, from)) });
       }

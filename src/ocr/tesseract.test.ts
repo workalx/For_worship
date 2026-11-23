@@ -1,11 +1,12 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const terminate = vi.fn(async () => {});
 const recognize = vi.fn();
 const createWorker = vi.fn(async () => ({ recognize, terminate }));
 vi.mock('tesseract.js', () => ({ createWorker }));
 
-import { recognizeWithTesseract } from './tesseract';
+import { AiError } from '../ai/provider';
+import { OCR_TIMEOUT_MS, recognizeWithTesseract } from './tesseract';
 
 const bw = (text: string, x0: number, confidence = 90) => ({
   text,
@@ -48,6 +49,8 @@ describe('recognizeWithTesseract', () => {
     expect(String(opts.langPath)).toMatch(/tesseract\/lang$/);
     expect(opts.gzip).toBe(true);
     expect(opts.cacheMethod).toBe('none');
+    expect(opts.workerBlobURL).toBe(false);
+    expect(typeof opts.errorHandler).toBe('function');
     expect(recognize.mock.calls[0][2]).toEqual({ blocks: true });
     expect(c.title).toBe('Назва');
     expect(c.body).toBe('[G]Ти');
@@ -63,5 +66,51 @@ describe('recognizeWithTesseract', () => {
     recognize.mockRejectedValue(new Error('boom'));
     await expect(recognizeWithTesseract(new Blob(['x']))).rejects.toThrow('boom');
     expect(terminate).toHaveBeenCalledOnce();
+  });
+
+  it('keeps low-confidence chord words but drops low-confidence noise', async () => {
+    recognize.mockResolvedValue({
+      data: {
+        blocks: [
+          { paragraphs: [{ lines: [{ words: [bw('Назва', 0)] }, { words: [bw('C', 0, 10), bw('G', 60, 5), bw('шум', 100, 5)] }, { words: [bw('Слава', 0), bw('Богу', 60)] }] }] },
+        ],
+      },
+    });
+    const c = await recognizeWithTesseract(new Blob(['x']));
+    expect(c.body).toBe('[C]Слава [G]Богу');
+  });
+
+  describe('failures that never settle createWorker', () => {
+    afterEach(() => vi.useRealTimers());
+
+    it('rejects with AiError when errorHandler fires', async () => {
+      createWorker.mockImplementationOnce(((_l: string, _o: number, opts: { errorHandler: (e: unknown) => void }) => {
+        setTimeout(() => opts.errorHandler(new Error('lang fetch failed')), 0);
+        return new Promise(() => {});
+      }) as never);
+      const err = await recognizeWithTesseract(new Blob(['x'])).catch((e) => e);
+      expect(err).toBeInstanceOf(AiError);
+      expect(err.kind).toBe('ocr');
+      expect(terminate).not.toHaveBeenCalled();
+    });
+
+    it('rejects after the watchdog timeout', async () => {
+      vi.useFakeTimers();
+      createWorker.mockImplementationOnce((() => new Promise(() => {})) as never);
+      const p = recognizeWithTesseract(new Blob(['x'])).catch((e) => e);
+      await vi.advanceTimersByTimeAsync(OCR_TIMEOUT_MS + 1);
+      const err = await p;
+      expect(err).toBeInstanceOf(AiError);
+      expect(err.kind).toBe('ocr');
+    });
+
+    it('times out a hanging recognize and terminates the worker', async () => {
+      vi.useFakeTimers();
+      recognize.mockReturnValue(new Promise(() => {}));
+      const p = recognizeWithTesseract(new Blob(['x'])).catch((e) => e);
+      await vi.advanceTimersByTimeAsync(OCR_TIMEOUT_MS + 1);
+      expect((await p).kind).toBe('ocr');
+      expect(terminate).toHaveBeenCalledOnce();
+    });
   });
 });

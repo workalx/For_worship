@@ -95,13 +95,23 @@ test('помилка Tesseract — onError, оверлей зникає', async 
   expect(screen.queryByText(/Розпізнаю пісню/)).toBeNull();
 });
 
-test('не-AiError від Tesseract обгортається в unknown', async () => {
+test('інша помилка Tesseract - окремий вид ocr, не Gemini', async () => {
+  recognizePhoto.mockRejectedValue(new AiError('network'));
+  recognizeWithTesseract.mockRejectedValue(new AiError('unknown', 'x'));
+  const { onError, pick } = setup();
+  pick();
+  await waitFor(() => expect(onError).toHaveBeenCalled());
+  expect(onError.mock.calls[0][0].kind).toBe('ocr');
+  expect(onError.mock.calls[0][0].message).toMatch(/на пристрої/);
+});
+
+test('не-AiError від Tesseract обгортається в ocr', async () => {
   recognizePhoto.mockRejectedValue(new AiError('network'));
   recognizeWithTesseract.mockRejectedValue(new Error('boom'));
   const { onError, pick } = setup();
   pick();
   await waitFor(() => expect(onError).toHaveBeenCalled());
-  expect(onError.mock.calls[0][0].kind).toBe('unknown');
+  expect(onError.mock.calls[0][0].kind).toBe('ocr');
 });
 
 test('під час Tesseract видно «без Gemini», під час Gemini — звичайний текст', async () => {

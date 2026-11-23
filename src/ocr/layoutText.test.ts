@@ -86,6 +86,27 @@ describe('ocrToCandidate geometry', () => {
     expect(c.body).toBe('[Am]Слава [C]Богу');
   });
 
+  it('reads Cyrillic-misread chord rows (Ет С, Ат Е)', () => {
+    const words = lyricWords(['Господь', 'мій']);
+    const c = ocrToCandidate([
+      { words: [{ text: 'Ет', x0: words[0].x0, x1: words[0].x0 + 20 }, { text: 'с', x0: words[1].x0, x1: words[1].x0 + 10 }], y0: 0 },
+      { words, y0: 30 },
+    ]);
+    expect(c.body).toBe('[Em]Господь [C]мій');
+    const d = ocrToCandidate([
+      { words: [{ text: 'Ат', x0: 0, x1: 20 }, { text: 'Е', x0: 60, x1: 70 }], y0: 0 },
+    ]);
+    expect(d.body).toBe('[Am] [E]');
+  });
+
+  it('real Ukrainian lyric rows stay lyrics', () => {
+    for (const row of [['а', 'ти', 'мій', 'Бог'], ['Се', 'Господь']]) {
+      const words = row.map((t, i) => ({ text: t, x0: i * 50, x1: i * 50 + 40 }));
+      const c = ocrToCandidate([{ words: [{ text: 'Назва', x0: 0, x1: 50 }], y0: 0 }, { words, y0: 30 }]);
+      expect(c.body).toBe(row.join(' '));
+    }
+  });
+
   it('keeps a section label as a label and a chord-only line', () => {
     const c = ocrToCandidate([
       { words: [{ text: 'Назва', x0: 0, x1: 50 }] },
