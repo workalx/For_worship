@@ -5,6 +5,8 @@ declare global {
   var ForWorshipExt: {
     MESSAGE_TYPE: 'for-worship/songselect-import';
     VERSION: 1;
+    RESULT_TYPE: 'for-worship/songselect-result';
+    isResultMessage(data: unknown): boolean;
     APP_ORIGINS: string[];
     songNumberFromUrl(url: string): string | null;
     isChordSheetUrl(url: string): boolean;

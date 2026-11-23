@@ -32,3 +32,11 @@ test('повідомлення відповідає тому, що чекає п
 test('адреси програми містять локальну', () => {
   expect(ext.APP_ORIGINS).toContain('http://localhost:5173');
 });
+
+test('розпізнає повідомлення-результат від програми', () => {
+  expect(ext.isResultMessage({ type: ext.RESULT_TYPE, version: 1, ok: true, title: 'x' })).toBe(true);
+  expect(ext.isResultMessage({ type: ext.RESULT_TYPE, version: 1, ok: false, error: 'e' })).toBe(true);
+  expect(ext.isResultMessage({ type: ext.RESULT_TYPE, version: 2, ok: true })).toBe(false);
+  expect(ext.isResultMessage({ type: ext.MESSAGE_TYPE, version: 1, ok: true })).toBe(false);
+  expect(ext.isResultMessage(null)).toBe(false);
+});

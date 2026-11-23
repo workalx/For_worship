@@ -1,6 +1,7 @@
 // Спільні чисті функції розширення. Класичний скрипт: визначає globalThis.ForWorshipExt.
 (function () {
   var MESSAGE_TYPE = 'for-worship/songselect-import';
+  var RESULT_TYPE = 'for-worship/songselect-result';
   var VERSION = 1;
   // Адреси програми. Додайте свою публікацію сюди та в manifest.json (див. README.md).
   var APP_ORIGINS = ['http://localhost:5173'];
@@ -40,7 +41,13 @@
     return { type: MESSAGE_TYPE, version: VERSION, html: html, pageUrl: pageUrl, ccliNumber: ccliNumber };
   }
 
+  function isResultMessage(data) {
+    return !!data && typeof data === 'object' && data.type === RESULT_TYPE && data.version === VERSION && typeof data.ok === 'boolean';
+  }
+
   globalThis.ForWorshipExt = {
+    RESULT_TYPE: RESULT_TYPE,
+    isResultMessage: isResultMessage,
     MESSAGE_TYPE: MESSAGE_TYPE,
     VERSION: VERSION,
     APP_ORIGINS: APP_ORIGINS,

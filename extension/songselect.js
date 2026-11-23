@@ -25,7 +25,19 @@
     }
   }
 
+  var inFlight = false;
+
   async function onClick(btn) {
+    if (inFlight) return;
+    inFlight = true;
+    try {
+      await doImport(btn);
+    } finally {
+      inFlight = false;
+    }
+  }
+
+  async function doImport(btn) {
     var number = ext.songNumberFromUrl(location.href);
     var key = currentKey();
     if (!number || !key) {
@@ -73,6 +85,7 @@
     if (existing) {
       // Кнопка вже на місці. Плаваючу переносимо в панель, щойно та з'явиться.
       if (!toolbar || existing.parentElement === toolbar) return;
+      if (inFlight) return; // не підміняємо кнопку під час імпорту
       existing.remove();
     }
     if (toolbar) toolbar.appendChild(makeButton(false));

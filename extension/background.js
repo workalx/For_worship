@@ -31,28 +31,26 @@ function waitForComplete(tabId) {
       if (id === tabId && info.status === 'complete') finish();
     }
     chrome.tabs.onUpdated.addListener(onUpdated);
-    chrome.tabs.get(tabId).then(function (t) {
-      if (t.status === 'complete') finish();
-    });
+    chrome.tabs
+      .get(tabId)
+      .then(function (t) {
+        if (t.status === 'complete') finish();
+      })
+      .catch(finish); // вкладку закрито
     setTimeout(finish, 30000);
   });
 }
 
-async function deliver(msg) {
-  var tab = await findAppTab();
-  if (!tab) {
-    tab = await chrome.tabs.create({ url: ext.APP_ORIGINS[0] + '/', active: true });
-    await waitForComplete(tab.id);
-  }
-  // Слухач програми з'являється після рендеру React — пробуємо кілька разів.
-  var lastError = 'Не вдалося зв\u2019язатися з програмою';
+async function trySend(tabId, msg) {
+  var lastError = 'Не вдалося зв’язатися з програмою';
   for (var i = 0; i < RETRIES; i++) {
     try {
-      var res = await chrome.tabs.sendMessage(tab.id, msg);
-      if (res && res.ok) {
-        await chrome.tabs.update(tab.id, { active: true });
-        if (tab.windowId !== undefined) await chrome.windows.update(tab.windowId, { focused: true });
-        return { ok: true };
+      var res = await chrome.tabs.sendMessage(tabId, msg);
+      if (res && res.ok) return { ok: true };
+      if (res && res.error) {
+        lastError = res.error;
+        // Програма відповіла помилкою імпорту — повтор не допоможе (таймаут — інша річ).
+        if (res.error !== 'timeout') return { ok: false, error: lastError };
       }
     } catch (e) {
       lastError = e && e.message ? e.message : String(e);
@@ -62,8 +60,30 @@ async function deliver(msg) {
   return { ok: false, error: lastError };
 }
 
-chrome.runtime.onMessage.addListener(function (msg, _sender, sendResponse) {
-  if (!msg || msg.type !== ext.MESSAGE_TYPE) return;
+async function deliver(msg) {
+  var tab = await findAppTab();
+  var existing = !!tab;
+  if (!tab) {
+    tab = await chrome.tabs.create({ url: ext.APP_ORIGINS[0] + '/', active: true });
+    await waitForComplete(tab.id);
+  }
+  var result = await trySend(tab.id, msg);
+  if (!result.ok && existing) {
+    // Вкладка, відкрита до встановлення розширення, не має content script — перезавантажуємо й пробуємо ще раз.
+    await chrome.tabs.reload(tab.id);
+    await waitForComplete(tab.id);
+    result = await trySend(tab.id, msg);
+  }
+  if (result.ok) {
+    await chrome.tabs.update(tab.id, { active: true });
+    if (tab.windowId !== undefined) await chrome.windows.update(tab.windowId, { focused: true });
+  }
+  return result;
+}
+
+chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
+  if (!msg || msg.type !== ext.MESSAGE_TYPE || msg.version !== ext.VERSION) return;
+  if (!sender || typeof sender.url !== 'string' || sender.url.indexOf('https://songselect.ccli.com/') !== 0) return;
   deliver(msg).then(sendResponse, function (e) {
     sendResponse({ ok: false, error: e && e.message ? e.message : String(e) });
   });
