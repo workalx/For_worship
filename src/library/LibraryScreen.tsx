@@ -60,13 +60,17 @@ type Props = {
   shared?: Shared | null;
   /** Вбудована бібліотека гімнів (для тестів можна підставити свою). */
   library?: LibraryLoader;
+  /** Відкрити пісню за id (наприклад, щойно імпортовану зі SongSelect). */
+  openSongId?: string;
+  /** Змінюється за кожного нового запиту, щоб повторно відкрити ту саму пісню. */
+  openSongNonce?: number;
 };
 
 function hasGeminiKey(): boolean {
   return loadSettings().geminiKey.trim() !== '';
 }
 
-export function LibraryScreen({ onPlay, onSongShown, shared, library = libraryLoader }: Props) {
+export function LibraryScreen({ onPlay, onSongShown, shared, library = libraryLoader, openSongId, openSongNonce }: Props) {
   const [mode, setMode] = useState<Mode>(() =>
     shared?.kind === 'text'
       ? { kind: 'edit', song: songFromPastedText(shared.text, shared.title, shared.source) }
@@ -108,6 +112,10 @@ export function LibraryScreen({ onPlay, onSongShown, shared, library = libraryLo
   useEffect(() => {
     void reload();
   }, [reload, mode]);
+
+  useEffect(() => {
+    if (openSongId) setMode({ kind: 'view', id: openSongId });
+  }, [openSongId, openSongNonce]);
 
   useEffect(() => {
     if (mode.kind !== 'view') return;
