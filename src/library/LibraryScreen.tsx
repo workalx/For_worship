@@ -9,6 +9,7 @@ import { OnlineSearch } from './OnlineSearch';
 import { PhotoImport } from './PhotoImport';
 import { normalizeImportedText, songFromPastedText } from './importText';
 import { openInBrowser } from './webSearch';
+import { songSelectSearchUrl } from '../songselect/searchUrl';
 import type { Shared } from './shareTarget';
 import { loadSettings } from '../settings/settings';
 import { SettingsScreen } from '../settings/SettingsScreen';
@@ -365,6 +366,14 @@ export function LibraryScreen({ onPlay, onSongShown, shared, library = libraryLo
             <button type="button" className="btn" disabled={importing} onClick={() => fileInput.current?.click()}>
               <Icon as={FolderInput} />
               {importing ? 'Імпортую…' : 'Імпорт файлів'}
+            </button>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => window.open(songSelectSearchUrl(query), '_blank', 'noopener')}
+            >
+              <Icon as={ExternalLink} />
+              Шукати на SongSelect
             </button>
             <input
               ref={fileInput}
