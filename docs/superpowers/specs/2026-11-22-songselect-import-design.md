@@ -73,8 +73,8 @@
 ### Розширення `extension/` (Manifest V3, у цьому репозиторії)
 - Content script на `https://songselect.ccli.com/*`; сторінка — SPA, тож стежить за зміною адреси й
   на `/songs/<номер>/<slug>/viewchordsheet` додає кнопку «Додати в For Worship».
-- Після натискання: бере тональність, вибрану на сторінці (`#ChordSheetTransposeKeySelectInput`, інакше
-  `code.cproSongKey` на сторінці), запитує `GetSongChordsHTML` з цією тональністю, `columns=1`,
+- Після натискання: бере тональність зі сторінки — `code.cproSongKey[data-chordname]`, а якщо його немає,
+  значення вибору `#ChordSheetTransposeKeySelectInput`, запитує `GetSongChordsHTML` з цією тональністю, `columns=1`,
   `style=Standard`, `enableFontCustomization=0`; при `isSuccess !== true` — «Помилка».
   Перетворення HTML не робить: передає `payload` як є.
 - Передача: service worker шукає відкриту вкладку програми, інакше відкриває її; content script на

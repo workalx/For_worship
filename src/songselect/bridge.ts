@@ -32,21 +32,28 @@ export function isSongSelectResult(data: unknown): data is SongSelectResult {
 
 const postResult = (result: SongSelectResult) => window.postMessage(result, window.location.origin);
 
-// Розширення повторно надсилає імпорт, доки не отримає результат. Дублікати за номером CCLI
+// Розширення повторно надсилає імпорт, доки не отримає результат. Дублікати (той самий номер CCLI і той самий вміст)
 // не запускають другий імпорт: під час виконання ігноруються, а після завершення (короткий час)
 // лише повторно надсилають той самий результат.
 const RESULT_CACHE_MS = 3000;
+
+/** Дешевий хеш (djb2) вмісту: однакові повтори дедуплікуються, а інший вміст (напр. інша тональність) імпортується заново. */
+function hashText(s: string): string {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36) + ':' + s.length;
+}
 
 /** Слухає повідомлення від розширення (лише з того ж origin). Повертає функцію відписки. */
 export function listenForSongSelect(onImported: (song: Song) => void, onError: (e: Error) => void): () => void {
   const seen = new Map<string, SongSelectResult | null>();
   const timers = new Set<ReturnType<typeof setTimeout>>();
-  const finish = (ccli: string, result: SongSelectResult) => {
-    seen.set(ccli, result);
+  const finish = (key: string, result: SongSelectResult) => {
+    seen.set(key, result);
     postResult(result);
     const t = setTimeout(() => {
       timers.delete(t);
-      seen.delete(ccli);
+      seen.delete(key);
     }, RESULT_CACHE_MS);
     timers.add(t);
   };
@@ -55,20 +62,21 @@ export function listenForSongSelect(onImported: (song: Song) => void, onError: (
     const msg = event.data;
     if (!isSongSelectImport(msg)) return;
     const ccli = msg.ccliNumber;
-    if (seen.has(ccli)) {
-      const done = seen.get(ccli);
+    const key = `${ccli}:${hashText(msg.html)}`;
+    if (seen.has(key)) {
+      const done = seen.get(key);
       if (done) postResult(done);
       return;
     }
-    seen.set(ccli, null);
+    seen.set(key, null);
     importSongSelect(msg).then(
       (song) => {
-        finish(ccli, { type: 'for-worship/songselect-result', version: 1, ccliNumber: ccli, ok: true, title: song.title });
+        finish(key, { type: 'for-worship/songselect-result', version: 1, ccliNumber: ccli, ok: true, title: song.title });
         onImported(song);
       },
       (e) => {
         const err = e instanceof Error ? e : new Error(String(e));
-        finish(ccli, { type: 'for-worship/songselect-result', version: 1, ccliNumber: ccli, ok: false, error: err.message });
+        finish(key, { type: 'for-worship/songselect-result', version: 1, ccliNumber: ccli, ok: false, error: err.message });
         onError(err);
       },
     );

@@ -71,3 +71,20 @@ test('імпорт SongSelect: +2 транспонує акорди, текст 
   expect(new Set(chords(out))).toEqual(new Set(['A', 'E/G#', 'F#m7', 'Dadd9']));
   expect(lyrics(out)).toEqual(lyrics(doc));
 });
+
+test('акорд у дужках [(Bb/F)] — акорд, транспонується з дужками', () => {
+  const doc = parseChordPro('[(Bb/F)]Слава [G]нам');
+  expect(doc.sections[0].lines[0]).toEqual({
+    lyrics: 'Слава нам',
+    chords: [{ pos: 0, chord: '(Bb/F)' }, { pos: 6, chord: 'G' }],
+  });
+  expect(looksLikeChordPro('[(Bb/F)]текст')).toBe(true);
+  const out = transposeDoc(doc, -2, true);
+  expect(out.sections[0].lines[0].chords.map((c) => c.chord)).toEqual(['(Ab/Eb)', 'F']);
+});
+
+test('[(2x)] і [(To Chorus)] лишаються текстом', () => {
+  const line = parseChordPro('[(2x)]Слава [(To Chorus)]').sections[0].lines[0];
+  expect(line.chords).toEqual([]);
+  expect(line.lyrics).toBe('[(2x)]Слава [(To Chorus)]');
+});

@@ -55,7 +55,7 @@ test('HTML без .cproTitle — помилка', () => {
 });
 
 test('без tempo/time — поля не заповнюються; розмір не з 4/4,3/4,6/8 — ігнорується', () => {
-  const html = (t: string) => `<span class="cproTitle">X</span>${t}<pre class="cproSongBody"></pre>`;
+  const html = (t: string) => `<span class="cproTitle">X</span>${t}<pre class="cproSongBody"><span class="cproSongSection"><span class="cproSongLine">текст</span></span></pre>`;
   const none = parseSongSelectHtml(html(''), url, '1');
   expect(none.bpm).toBeUndefined();
   expect(none.timeSig).toBeUndefined();
@@ -65,4 +65,29 @@ test('без tempo/time — поля не заповнюються; розмір
   const waltz = parseSongSelectHtml(html('<span class="cproTempoTimeWrapper">Time - 3/4</span>'), url, '1');
   expect(waltz.timeSig).toBe('3/4');
   expect(waltz.bpm).toBeUndefined();
+});
+
+test('невідомий вбудований елемент у рядку зберігає свій текст', () => {
+  const html = `<span class="cproTitle">X</span><pre class="cproSongBody"><span class="cproSongSection"><span class="cproSongLine">Ми <em class="nova">співаємо</em> тут</span></span></pre>`;
+  expect(parseSongSelectHtml(html, url, '1').body).toBe('Ми співаємо тут');
+});
+
+test('назва без частин і рядків — помилка, а не порожня пісня', () => {
+  expect(() => parseSongSelectHtml('<span class="cproTitle">X</span><pre class="cproSongBody"></pre>', url, '1')).toThrow(
+    'не знайдено тексту пісні',
+  );
+  const onlyLabel = '<span class="cproTitle">X</span><pre class="cproSongBody"><span class="cproSongSection"><span class="cproComment">Verse 1</span></span></pre>';
+  expect(() => parseSongSelectHtml(onlyLabel, url, '1')).toThrow('не знайдено тексту пісні');
+});
+
+test('автори через « | » стають переліком через кому', () => {
+  const html = `<span class="cproTitle">X</span><span class="cproAuthors"> Chris Tomlin | John Newton |  | Louie Giglio </span><pre class="cproSongBody"><span class="cproSongSection"><span class="cproSongLine">а</span></span></pre>`;
+  expect(parseSongSelectHtml(html, url, '1').artist).toBe('Chris Tomlin, John Newton, Louie Giglio');
+});
+
+test('акорд у дужках data-chordname="(Bb/F)" потрапляє в тіло як [(Bb/F)]', () => {
+  const html = `<span class="cproTitle">X</span><pre class="cproSongBody"><span class="cproSongSection"><span class="cproSongLine"><span class="chordWrapper"><code class="chord" data-chordname="(Bb/F)">(Bb/F)</code><span class="chordLyrics">Сла</span></span>ва</span></span></pre>`;
+  const body = parseSongSelectHtml(html, url, '1').body;
+  expect(body).toBe('[(Bb/F)]Слава');
+  expect(parseChordPro(body).sections[0].lines[0].chords).toEqual([{ pos: 0, chord: '(Bb/F)' }]);
 });

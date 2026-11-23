@@ -9,13 +9,17 @@ const FLAT_KEYS = new Set(['F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Dm', 'Gm', 'Cm', 
 const QUALITY = String.raw`(?:m|maj|min|dim|aug|sus|add|M)?\d*(?:sus\d|add\d+|b\d+|#\d+|maj\d*|\([^)]*\))*`;
 const CHORD_RE = new RegExp(`^([A-G][#b]?)(${QUALITY})(?:/([A-G][#b]?))?$`);
 
-export type ParsedChord = { root: string; quality: string; bass?: string };
+export type ParsedChord = { root: string; quality: string; bass?: string; optional?: boolean };
 
+/** Акорд, можливо в дужках: SongSelect позначає необов'язкові акорди як «(Bb/F)». */
 export function parseChord(s: string): ParsedChord | null {
-  const m = CHORD_RE.exec(s.trim());
+  const t = s.trim();
+  const optional = t.length > 2 && t.startsWith('(') && t.endsWith(')') && !t.startsWith('((');
+  const m = CHORD_RE.exec(optional ? t.slice(1, -1).trim() : t);
   if (!m) return null;
   const parsed: ParsedChord = { root: m[1], quality: m[2] };
   if (m[3]) parsed.bass = m[3];
+  if (optional) parsed.optional = true;
   return parsed;
 }
 
@@ -40,7 +44,8 @@ export function transposeChord(chord: string, semitones: number, preferFlats: bo
   if (!p) return chord;
   const root = shiftNote(p.root, semitones, preferFlats);
   const bass = p.bass ? `/${shiftNote(p.bass, semitones, preferFlats)}` : '';
-  return root + p.quality + bass;
+  const out = root + p.quality + bass;
+  return p.optional ? `(${out})` : out;
 }
 
 /** Корінь тональності: «F#m» → «F#». */

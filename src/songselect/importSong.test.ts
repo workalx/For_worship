@@ -36,3 +36,11 @@ test('повторний імпорт не скидає вибрану кори�
   await saveSong({ ...a, key: 'D', capo: 2 });
   expect(await importSongSelect(msg(SONGSELECT_SAMPLE_HTML))).toMatchObject({ key: 'D', capo: 2 });
 });
+
+test('нерозпізнана розмітка не затирає тіло наявної пісні', async () => {
+  const a = await importSongSelect(msg(SONGSELECT_SAMPLE_HTML));
+  const empty = '<span class="cproTitle">Тестова пісня</span><pre class="cproSongBody"></pre>';
+  await expect(importSongSelect(msg(empty))).rejects.toThrow('не знайдено тексту пісні');
+  expect((await getSong(a.id))?.body).toBe(a.body);
+  expect(await db.songs.count()).toBe(1);
+});

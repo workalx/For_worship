@@ -18,6 +18,8 @@ function lineText(line: Element): string {
         out += el.querySelector('.chordLyrics')?.textContent ?? '';
       } else if (el.classList.contains('cproDirectionWrapper')) {
         out += el.querySelector('.cproDirection')?.textContent ?? '';
+      } else {
+        out += el.textContent ?? '';
       }
     }
   }
@@ -38,6 +40,8 @@ export function parseSongSelectHtml(html: string, pageUrl: string, ccliNumber: s
     for (const line of Array.from(section.querySelectorAll('.cproSongLine'))) lines.push(lineText(line));
     blocks.push(lines.join('\n'));
   }
+  const hasText = blocks.some((b) => b.split('\n').some((l) => l.trim() !== '' && !l.startsWith('{c:')));
+  if (!hasText) throw new Error('SongSelect: не знайдено тексту пісні');
 
   const song: SongInput = {
     title,
@@ -48,7 +52,11 @@ export function parseSongSelectHtml(html: string, pageUrl: string, ccliNumber: s
     chordsOrigin: 'manual',
   };
 
-  const artist = text(doc.querySelector('.cproAuthors'));
+  const artist = text(doc.querySelector('.cproAuthors'))
+    .split('|')
+    .map((a) => a.trim())
+    .filter(Boolean)
+    .join(', ');
   if (artist) song.artist = artist;
 
   const key = doc.querySelector('code.cproSongKey')?.getAttribute('data-chordname')?.trim();

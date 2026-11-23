@@ -27,6 +27,22 @@ test('parseChord розбирає корінь, якість і бас', () => {
   expect(parseChord('Хвала')).toBeNull();
 });
 
+describe('акорди в дужках (SongSelect)', () => {
+  test('parseChord розбирає внутрішній акорд', () => {
+    expect(parseChord('(Bb/F)')).toEqual({ root: 'Bb', quality: '', bass: 'F', optional: true });
+  });
+  test('transposeChord зберігає дужки', () => {
+    expect(transposeChord('(Bb/F)', -2, true)).toBe('(Ab/Eb)');
+    expect(transposeChord('(G)', 2, false)).toBe('(A)');
+  });
+  test.each(['(Bb/F)', '(Am7)', '(G)'])('%s — акорд', (s) => {
+    expect(isChord(s)).toBe(true);
+  });
+  test.each(['(2x)', '(To Chorus)', 'N.C.', '|', 'x2', '()', '(', '(Bb', '((G))'])('%s — не акорд', (s) => {
+    expect(isChord(s)).toBe(false);
+  });
+});
+
 test('semitonesBetween і keyPrefersFlats', () => {
   expect(semitonesBetween('D', 'G')).toBe(5);
   expect(semitonesBetween('G', 'D')).toBe(-5);

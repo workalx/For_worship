@@ -139,3 +139,33 @@ test('швидкі однакові повідомлення — один імп
   off();
   stop();
 });
+
+test('той самий CCLI, але інший вміст — імпортується знову (інша тональність)', async () => {
+  const { results, stop } = collectResults();
+  const onImported = vi.fn();
+  const off = listenForSongSelect(onImported, vi.fn());
+  const second = SONGSELECT_SAMPLE_HTML.replace('data-chordname="G">G</code> |', 'data-chordname="A">A</code> |');
+  post(msg(SONGSELECT_SAMPLE_HTML));
+  await vi.waitFor(() => expect(results).toHaveLength(1));
+  post(msg(second));
+  await vi.waitFor(() => expect(onImported).toHaveBeenCalledTimes(2));
+  await vi.waitFor(() => expect(results).toHaveLength(2));
+  expect(await db.songs.count()).toBe(1);
+  expect((await db.songs.toArray())[0].originalKey).toBe('A');
+  off();
+  stop();
+});
+
+test('нерозпізнана розмітка: результат ok:false, наявне тіло не змінюється', async () => {
+  const { results, stop } = collectResults();
+  const off = listenForSongSelect(vi.fn(), vi.fn());
+  post(msg(SONGSELECT_SAMPLE_HTML));
+  await vi.waitFor(() => expect(results).toHaveLength(1));
+  const before = (await db.songs.toArray())[0].body;
+  post(msg('<span class="cproTitle">Тестова пісня</span><pre class="cproSongBody"></pre>'));
+  await vi.waitFor(() => expect(results).toHaveLength(2));
+  expect(results[1]).toMatchObject({ ok: false, ccliNumber: '1234567' });
+  expect((await db.songs.toArray())[0].body).toBe(before);
+  off();
+  stop();
+});
