@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "For Worship — SongSelect",
+  "version": "1.0.0",
+  "description": "Додає кнопку «Додати в For Worship» на сторінці акордів SongSelect.",
+  "permissions": ["tabs"],
+  "host_permissions": ["https://songselect.ccli.com/*", "http://localhost:5173/*"],
+  "icons": { "48": "icons/icon-192.png", "128": "icons/icon-192.png" },
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": ["https://songselect.ccli.com/*"],
+      "js": ["lib.js", "songselect.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["http://localhost:5173/*"],
+      "js": ["lib.js", "app-bridge.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
