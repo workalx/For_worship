@@ -34,8 +34,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Індекс бібліотеки пісень — в офлайн-кеші з моменту встановлення (пошук без мережі).
-        globPatterns: ['**/*.{js,css,html,png,svg,ico,woff2}', 'library/index.json'],
+        globPatterns: ['**/*.{js,css,html,png,svg,ico,woff2}'],
         navigateFallback: 'index.html',
         runtimeCaching: [
           {

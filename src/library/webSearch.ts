@@ -28,13 +28,13 @@ const CHORD_WORD_RE = /акорд|аккорд|chord/i;
 
 /**
  * Адреса, яку треба відкрити в браузері: саме посилання, якщо користувач вставив посилання,
- * інакше — пошук «назва акорди» у вибраній пошуковій системі.
+ * інакше — пошук «назва chords» у вибраній пошуковій системі.
  */
 export function webSearchUrl(query: string, engine: SearchEngine = DEFAULT_SEARCH_ENGINE): string {
   const q = query.trim();
   if (isWebUrl(q)) return q;
   const base = (SEARCH_ENGINES.find((e) => e.id === engine) ?? SEARCH_ENGINES[0]).url;
-  return base + encodeURIComponent(CHORD_WORD_RE.test(q) ? q : `${q} акорди`);
+  return base + encodeURIComponent(CHORD_WORD_RE.test(q) ? q : `${q} chords`);
 }
 
 /** Відкриває пошук у браузері пристрою (для встановленої програми — в окремому вікні браузера). */

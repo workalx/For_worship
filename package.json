@@ -7,8 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "test": "vitest run",
-    "library:build": "vite-node scripts/library/build.ts"
+    "test": "vitest run"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",

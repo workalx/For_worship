@@ -35,7 +35,7 @@ test('«Нова пісня» відкриває редактор', async () => 
   expect(screen.getByLabelText('Текст пісні')).toBeInTheDocument();
 });
 
-test('пошук в інтернеті без ключа відкриває пошук у браузері', async () => {
+test('«Шукати в інтернеті» відкриває пошук «назва chords» у браузері', async () => {
   localStorage.clear();
   const open = vi.spyOn(window, 'open').mockImplementation(() => null);
   render(<LibraryScreen onPlay={() => {}} />);
@@ -45,22 +45,22 @@ test('пошук в інтернеті без ключа відкриває по
   await userEvent.click(online);
   expect(open).toHaveBeenCalledTimes(1);
   expect(open.mock.calls[0][0]).toBe(
-    `https://search.brave.com/search?q=${encodeURIComponent('Свята любов акорди')}`,
+    `https://search.brave.com/search?q=${encodeURIComponent('Свята любов chords')}`,
   );
   expect(screen.getByText(/Пошук відкрито в браузері/)).toBeInTheDocument();
   expect(screen.queryByText('Додайте ключ Gemini в налаштуваннях')).not.toBeInTheDocument();
   open.mockRestore();
 });
 
-test('«У браузері» використовує пошукову систему з налаштувань', async () => {
+test('«Шукати в інтернеті» використовує пошукову систему з налаштувань, навіть з ключем Gemini', async () => {
   localStorage.setItem('fw.settings', JSON.stringify({ geminiKey: 'k', searchEngine: 'google' }));
   const open = vi.spyOn(window, 'open').mockImplementation(() => null);
   render(<LibraryScreen onPlay={() => {}} />);
-  const btn = await screen.findByRole('button', { name: 'У браузері' });
+  const btn = await screen.findByRole('button', { name: 'Шукати в інтернеті' });
   expect(btn).toBeDisabled();
   await userEvent.type(screen.getByLabelText('Пошук пісні'), 'Свята любов');
   await userEvent.click(btn);
-  expect(open.mock.calls[0][0]).toBe(`https://www.google.com/search?q=${encodeURIComponent('Свята любов акорди')}`);
+  expect(open.mock.calls[0][0]).toBe(`https://www.google.com/search?q=${encodeURIComponent('Свята любов chords')}`);
   open.mockRestore();
   localStorage.clear();
 });

@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { deleteSong, getSong, listServices, listSongs, saveService, saveSong, type Service, type Song } from '../db/db';
 import { guessKey } from '../music/chordpro';
 import { SongScreen } from '../song/SongScreen';
 import { nextSunday } from '../service/swipe';
 import { SongEditor } from './SongEditor';
 import { ConfirmDialog } from '../components/ConfirmDialog';
-import { OnlineSearch } from './OnlineSearch';
 import { PhotoImport } from './PhotoImport';
 import { normalizeImportedText, songFromPastedText } from './importText';
 import { openInBrowser } from './webSearch';
@@ -13,22 +12,18 @@ import { songSelectSearchUrl } from '../songselect/searchUrl';
 import type { Shared } from './shareTarget';
 import { loadSettings } from '../settings/settings';
 import { SettingsScreen } from '../settings/SettingsScreen';
-import { HymnCard, HymnResults, useLibraryIndex, type LibraryLoader } from './HymnLibrary';
-import { libraryLoader, librarySongToInput } from './libraryData';
-import type { LibraryIndexEntry, LibrarySong } from './catalogTypes';
 import { IMPORT_ACCEPT, importSongFiles, type ImportReport } from './bulkImport';
 import type { AiError, SongCandidate } from '../ai/provider';
 import './Library.css';
 import '../settings/Settings.css';
 import { Icon } from '../components/Icon';
-import { ArrowLeft, ClipboardPaste, ExternalLink, FolderInput, Play, Plus, Search, Settings, Trash2, X } from 'lucide-react';
+import { ClipboardPaste, ExternalLink, FolderInput, Play, Plus, Search, Settings, Trash2, X } from 'lucide-react';
 
 type Mode =
   | { kind: 'list' }
   | { kind: 'view'; id: string }
   | { kind: 'edit'; song?: Partial<Song> }
-  | { kind: 'settings' }
-  | { kind: 'hymn'; entry: LibraryIndexEntry };
+  | { kind: 'settings' };
 
 function candidateToSong(c: SongCandidate): Partial<Song> {
   return {
@@ -59,8 +54,6 @@ type Props = {
   onSongShown?: (song: Song) => void;
   /** Текст або посилання, якими поділилися з програмою з браузера. */
   shared?: Shared | null;
-  /** Вбудована бібліотека гімнів (для тестів можна підставити свою). */
-  library?: LibraryLoader;
   /** Відкрити пісню за id (наприклад, щойно імпортовану зі SongSelect). */
   openSongId?: string;
   /** Змінюється за кожного нового запиту, щоб повторно відкрити ту саму пісню. */
@@ -69,11 +62,7 @@ type Props = {
   onOpenedSong?: () => void;
 };
 
-function hasGeminiKey(): boolean {
-  return loadSettings().geminiKey.trim() !== '';
-}
-
-export function LibraryScreen({ onPlay, onSongShown, shared, library = libraryLoader, openSongId, openSongNonce, onOpenedSong }: Props) {
+export function LibraryScreen({ onPlay, onSongShown, shared, openSongId, openSongNonce, onOpenedSong }: Props) {
   const [mode, setMode] = useState<Mode>(() =>
     shared?.kind === 'text'
       ? { kind: 'edit', song: songFromPastedText(shared.text, shared.title, shared.source) }
@@ -85,25 +74,14 @@ export function LibraryScreen({ onPlay, onSongShown, shared, library = libraryLo
   const [service, setService] = useState<Service | undefined>();
   const [viewSong, setViewSong] = useState<Song | undefined>();
   const [toast, setToast] = useState<string | null>(
-    shared?.kind === 'url' && !hasGeminiKey()
-      ? 'Отримано лише посилання. Виділіть на сторінці текст пісні й поділіться ним'
-      : null,
-  );
-  const [online, setOnline] = useState<{ query: string; nonce: number } | null>(() =>
-    shared?.kind === 'url' && hasGeminiKey() ? { query: shared.url, nonce: 1 } : null,
+    shared?.kind === 'url' ? 'Отримано лише посилання. Виділіть на сторінці текст пісні й поділіться ним' : null,
   );
   const [browserHint, setBrowserHint] = useState(false);
   const [toDelete, setToDelete] = useState<{ id: string; title: string } | null>(null);
-  const searchCache = useRef(new Map<string, SongCandidate[]>());
   const [aiError, setAiError] = useState<AiError | null>(null);
-  const hymns = useLibraryIndex(library);
   const fileInput = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
   const [importReport, setImportReport] = useState<ImportReport | null>(null);
-  const addedFromLibrary = useMemo(
-    () => new Map(allSongs.filter((s) => s.libraryId).map((s) => [s.libraryId!, s] as const)),
-    [allSongs],
-  );
 
   const reload = useCallback(async () => {
     const [found, all, services] = await Promise.all([listSongs(query), listSongs(), listServices()]);
@@ -162,21 +140,6 @@ export function LibraryScreen({ onPlay, onSongShown, shared, library = libraryLo
     else setMode({ kind: 'list' });
   };
 
-  /** «Додати в мої пісні»: пісня з бібліотеки стає звичайною піснею користувача. */
-  const addHymn = async (entry: LibraryIndexEntry, loaded?: LibrarySong, view?: { key?: string; capo?: number }) => {
-    try {
-      const song = loaded ?? (await library.loadSong(entry));
-      const saved = await saveSong({ ...librarySongToInput(song), key: view?.key, capo: view?.capo || undefined });
-      setAllSongs((list) => [...list, saved]);
-      setToast(`«${saved.title}» додано в мої пісні`);
-      await reload();
-      return saved;
-    } catch (e) {
-      setToast(e instanceof Error ? e.message : 'Не вдалося додати пісню');
-      return null;
-    }
-  };
-
   /** Масовий імпорт файлів .cho / .chordpro / .txt у «Мої пісні» (лише на цьому пристрої). */
   const importFiles = async (files: File[]) => {
     if (!files.length) return;
@@ -193,22 +156,8 @@ export function LibraryScreen({ onPlay, onSongShown, shared, library = libraryLo
     }
   };
 
-  const searchOnline = () => {
-    const q = query.trim();
-    if (!q) return;
-    if (!hasGeminiKey()) {
-      searchInBrowser(q);
-      return;
-    }
-    setBrowserHint(false);
-    setAiError(null);
-    searchCache.current.delete(q);
-    setOnline((prev) => ({ query: q, nonce: (prev?.nonce ?? 0) + 1 }));
-  };
-
   const searchInBrowser = (q: string) => {
     setAiError(null);
-    setOnline(null);
     openInBrowser(q, loadSettings().searchEngine);
     setBrowserHint(true);
   };
@@ -228,25 +177,6 @@ export function LibraryScreen({ onPlay, onSongShown, shared, library = libraryLo
     }
     setMode({ kind: 'edit', song: songFromPastedText(text, query.trim()) });
   };
-
-  if (mode.kind === 'hymn') {
-    return (
-      <>
-        <HymnCard
-          entry={mode.entry}
-          library={library}
-          mine={addedFromLibrary.get(mode.entry.id)}
-          onAdd={async (song, view) => {
-            const saved = await addHymn(mode.entry, song, view);
-            if (saved) setMode({ kind: 'view', id: saved.id });
-          }}
-          onOpenMine={(s) => setMode({ kind: 'view', id: s.id })}
-          onClose={() => setMode({ kind: 'list' })}
-        />
-        {toast && <div className="toast">{toast}</div>}
-      </>
-    );
-  }
 
   if (mode.kind === 'settings') {
     return <SettingsScreen onClose={() => setMode({ kind: 'list' })} />;
@@ -448,24 +378,10 @@ export function LibraryScreen({ onPlay, onSongShown, shared, library = libraryLo
               </div>
             );
           })}
-          <HymnResults
-            query={query}
-            entries={hymns.entries}
-            error={hymns.error}
-            search={hymns.search}
-            added={addedFromLibrary}
-            onOpen={(entry) => setMode({ kind: 'hymn', entry })}
-            onAdd={(entry) => void addHymn(entry)}
-            onOpenMine={(s) => setMode({ kind: 'view', id: s.id })}
-          />
           <div className="row">
-            <button type="button" className="btn blue" disabled={!query.trim()} onClick={searchOnline}>
+            <button type="button" className="btn blue" disabled={!query.trim()} onClick={() => searchInBrowser(query.trim())}>
               <Icon as={Search} />
               Шукати в інтернеті
-            </button>
-            <button type="button" className="btn" disabled={!query.trim()} onClick={() => searchInBrowser(query.trim())}>
-              <Icon as={ExternalLink} />
-              У браузері
             </button>
           </div>
           {browserHint && (
@@ -475,30 +391,6 @@ export function LibraryScreen({ onPlay, onSongShown, shared, library = libraryLo
                 й натисніть «Вставити з буфера». Або виділіть текст і виберіть «Поділитися» → For Worship.
               </div>
             </div>
-          )}
-          {online !== null && (
-            <>
-              <button type="button" className="btn" style={{ alignSelf: 'flex-start' }} onClick={() => setOnline(null)}>
-                <Icon as={ArrowLeft} />
-                Сховати результати пошуку
-              </button>
-              <OnlineSearch
-                query={online.query}
-                nonce={online.nonce}
-                cache={searchCache.current}
-                onPick={(c) => {
-                  setMode({ kind: 'edit', song: candidateToSong(c) });
-                }}
-                onManual={() => {
-                  setOnline(null);
-                  setMode({ kind: 'edit', song: { title: online.query } });
-                }}
-                onSettings={() => {
-                  setOnline(null);
-                  setMode({ kind: 'settings' });
-                }}
-              />
-            </>
           )}
         </div>
         <div className="panel" style={{ flex: 1 }}>
