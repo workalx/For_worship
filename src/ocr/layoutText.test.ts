@@ -51,6 +51,21 @@ describe('ocrToCandidate geometry', () => {
     expect(c.body).toBe('[C]Слава Тобі[F]');
   });
 
+  it('chord in a gap goes to the nearest word edge', () => {
+    const lyric: OcrWord[] = [
+      { text: 'Слава', x0: 100, x1: 150 },
+      { text: 'Тобі', x0: 200, x1: 240 },
+    ];
+    const run = (x: number) =>
+      ocrToCandidate([
+        { words: [{ text: 'Назва', x0: 0, x1: 40 }], y0: 0 },
+        { words: [{ text: 'C', x0: x, x1: x + 10 }], y0: 30 },
+        { words: lyric, y0: 60 },
+      ]).body;
+    expect(run(180)).toBe('Слава [C]Тобі');
+    expect(run(160)).toBe('Слава[C] Тобі');
+  });
+
   it('cropped photo starting with a chord line has no title', () => {
     const words = lyricWords(['Господь', 'мій']);
     const c = ocrToCandidate([

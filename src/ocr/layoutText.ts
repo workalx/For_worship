@@ -69,12 +69,16 @@ function mergeChords(chordWords: OcrWord[], lyric: OcrWord[]): string {
   const inserts = chordsOf(chordWords).map(({ chord, x0 }) => {
     let idx = lyric.findIndex((w) => x0 >= w.x0 && x0 <= w.x1);
     if (idx < 0) {
-      idx = -1;
+      let prev = -1;
       lyric.forEach((w, i) => {
-        if (w.x1 < x0) idx = i;
+        if (w.x1 < x0) prev = i;
       });
+      if (prev < 0) return { at: 0, chord };
+      const next = prev + 1;
+      // у проміжку між словами: до ближчого краю (до наступного слова, якщо воно ближче)
+      if (next < lyric.length && lyric[next].x0 - x0 < x0 - lyric[prev].x1) return { at: starts[next], chord };
+      return { at: starts[prev] + lyric[prev].text.length, chord };
     }
-    if (idx < 0) return { at: 0, chord };
     const w = lyric[idx];
     const span = Math.max(1, w.x1 - w.x0);
     const off = Math.min(w.text.length, Math.max(0, Math.round(((x0 - w.x0) / span) * w.text.length)));
