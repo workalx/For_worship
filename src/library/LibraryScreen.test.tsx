@@ -164,3 +164,35 @@ test('«Видалити» в редакторі питає підтвердже
   expect(await screen.findByText('Світло в темряві')).toBeInTheDocument();
   expect(await db.songs.count()).toBe(1);
 });
+
+test('openSongId відкриває наявну пісню', async () => {
+  const [song] = await db.songs.filter((s) => s.title === 'Світло в темряві').toArray();
+  render(<LibraryScreen onPlay={() => {}} openSongId={song.id} />);
+  expect(await screen.findByText('Ти світло')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'До списку пісень' })).toBeInTheDocument();
+});
+
+test('той самий openSongId з новим nonce відкриває пісню знову', async () => {
+  const [song] = await db.songs.filter((s) => s.title === 'Світло в темряві').toArray();
+  const { rerender } = render(<LibraryScreen onPlay={() => {}} openSongId={song.id} openSongNonce={1} />);
+  await userEvent.click(await screen.findByRole('button', { name: 'До списку пісень' }));
+  expect(await screen.findByLabelText('Пошук пісні')).toBeInTheDocument();
+  rerender(<LibraryScreen onPlay={() => {}} openSongId={song.id} openSongNonce={2} />);
+  expect(await screen.findByText('Ти світло')).toBeInTheDocument();
+});
+
+test('«Шукати на SongSelect» відкриває пошук SongSelect у новій вкладці', async () => {
+  const open = vi.spyOn(window, 'open').mockImplementation(() => null);
+  try {
+    render(<LibraryScreen onPlay={() => {}} />);
+    await userEvent.type(await screen.findByLabelText('Пошук пісні'), 'Amazing Grace');
+    await userEvent.click(screen.getByRole('button', { name: 'Шукати на SongSelect' }));
+    expect(open).toHaveBeenCalledWith(
+      'https://songselect.ccli.com/search/results?search=Amazing%20Grace',
+      '_blank',
+      'noopener',
+    );
+  } finally {
+    open.mockRestore();
+  }
+});
