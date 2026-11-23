@@ -64,13 +64,15 @@ type Props = {
   openSongId?: string;
   /** Змінюється за кожного нового запиту, щоб повторно відкрити ту саму пісню. */
   openSongNonce?: number;
+  /** Запит на відкриття пісні виконано: батько має його скинути, щоб він не повторювався після перемонтування. */
+  onOpenedSong?: () => void;
 };
 
 function hasGeminiKey(): boolean {
   return loadSettings().geminiKey.trim() !== '';
 }
 
-export function LibraryScreen({ onPlay, onSongShown, shared, library = libraryLoader, openSongId, openSongNonce }: Props) {
+export function LibraryScreen({ onPlay, onSongShown, shared, library = libraryLoader, openSongId, openSongNonce, onOpenedSong }: Props) {
   const [mode, setMode] = useState<Mode>(() =>
     shared?.kind === 'text'
       ? { kind: 'edit', song: songFromPastedText(shared.text, shared.title, shared.source) }
@@ -114,7 +116,10 @@ export function LibraryScreen({ onPlay, onSongShown, shared, library = libraryLo
   }, [reload, mode]);
 
   useEffect(() => {
-    if (openSongId) setMode({ kind: 'view', id: openSongId });
+    if (!openSongId) return;
+    setMode({ kind: 'view', id: openSongId });
+    onOpenedSong?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openSongId, openSongNonce]);
 
   useEffect(() => {

@@ -53,11 +53,16 @@ export default function App({ shared }: { shared?: Shared | null }) {
 
   let screen;
   if (tab === 'songs') {
-    screen = <LibraryScreen
-        onPlay={play} onSongShown={setCurrentSong} shared={pendingShared.current}
+    screen = (
+      <LibraryScreen
+        onPlay={play}
+        onSongShown={setCurrentSong}
+        shared={pendingShared.current}
         openSongId={openSong?.id}
         openSongNonce={openSong?.nonce}
-      />;
+        onOpenedSong={() => setOpenSong(null)}
+      />
+    );
   } else if (tab === 'service') {
     screen = playing ? (
       <ServicePlayer
