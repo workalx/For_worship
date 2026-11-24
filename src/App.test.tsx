@@ -98,3 +98,40 @@ test('імпортована пісня відкривається один ра
   expect(await screen.findByLabelText('Пошук пісні')).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'До списку пісень' })).not.toBeInTheDocument();
 });
+
+const hashPayload = (ccliNumber: string, html: string) =>
+  'r' +
+  btoa(
+    String.fromCharCode(
+      ...new TextEncoder().encode(
+        JSON.stringify({ html, pageUrl: `https://songselect.ccli.com/songs/${ccliNumber}/test/viewchordsheet`, ccliNumber }),
+      ),
+    ),
+  );
+
+test('пісня з букмарклета (хеш адреси) імпортується й відкривається', async () => {
+  const { db } = await import('./db/db');
+  const { SONGSELECT_SAMPLE_HTML } = await import('./songselect/fixtures');
+  await db.songs.clear();
+  render(<App songSelectHash={hashPayload('7654321', SONGSELECT_SAMPLE_HTML)} />);
+  expect(await screen.findByRole('button', { name: 'До списку пісень' })).toBeInTheDocument();
+  expect(await db.songs.filter((s) => s.ccliNumber === '7654321').count()).toBe(1);
+});
+
+test('букмарклет не замінює наявну пісню без підтвердження', async () => {
+  const { db, saveSong } = await import('./db/db');
+  const { SONGSELECT_SAMPLE_HTML } = await import('./songselect/fixtures');
+  const { parseSongSelectHtml } = await import('./songselect/parseSongSelectHtml');
+  await db.songs.clear();
+  const page = 'https://songselect.ccli.com/songs/7654321/test/viewchordsheet';
+  const existing = await saveSong({ ...parseSongSelectHtml(SONGSELECT_SAMPLE_HTML, page, '7654321'), title: 'Моя назва' });
+  render(<App songSelectHash={hashPayload('7654321', SONGSELECT_SAMPLE_HTML)} />);
+  await userEvent.click(await screen.findByRole('button', { name: 'Скасувати' }));
+  expect((await db.songs.get(existing.id))?.title).toBe('Моя назва');
+
+  await db.songs.clear();
+  const again = await saveSong({ ...parseSongSelectHtml(SONGSELECT_SAMPLE_HTML, page, '7654321'), title: 'Моя назва' });
+  render(<App songSelectHash={hashPayload('7654321', SONGSELECT_SAMPLE_HTML)} />);
+  await userEvent.click(await screen.findByRole('button', { name: 'Оновити' }));
+  await vi.waitFor(async () => expect((await db.songs.get(again.id))?.title).not.toBe('Моя назва'));
+});

@@ -6,6 +6,7 @@ import { SEARCH_ENGINES, type SearchEngine } from '../library/webSearch';
 import './Settings.css';
 import { Icon } from '../components/Icon';
 import { X } from 'lucide-react';
+import { bookmarkletHref, currentAppUrl } from '../songselect/bookmarklet';
 
 function today(): string {
   const d = new Date();
@@ -50,6 +51,16 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     setStatus('Копію збережено в «Завантаження»');
+  };
+
+  const bookmarklet = bookmarkletHref(currentAppUrl());
+  const copyBookmarklet = async () => {
+    try {
+      await navigator.clipboard.writeText(bookmarklet);
+      setStatus('Код закладки скопійовано');
+    } catch {
+      setStatus('Не вдалося скопіювати — виділіть код у полі й скопіюйте вручну');
+    }
   };
 
   const restore = async (file: File) => {
@@ -131,6 +142,32 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
           <div className="row">
             <button type="button" className="btn" onClick={save}>
               Зберегти вибір
+            </button>
+          </div>
+        </section>
+        <section className="panel">
+          <h3>SongSelect на планшеті</h3>
+          <p className="hint">
+            На планшеті розширення браузера не працюють, тому замість кнопки використовуйте закладку. Один раз:
+            скопіюйте код нижче, додайте в браузері будь-яку сторінку в закладки, змініть назву закладки на
+            <b> For Worship</b>, а адресу замініть скопійованим кодом.
+          </p>
+          <p className="hint">
+            Далі: відкрийте пісню на songselect.ccli.com, вкладку <b>Chord Sheet</b>, оберіть тональність, наберіть в
+            адресному рядку «For Worship» і торкніться закладки — пісня відкриється в програмі.
+          </p>
+          <textarea
+            className="field"
+            aria-label="Код закладки SongSelect"
+            readOnly
+            rows={3}
+            style={{ width: '100%', fontFamily: 'monospace', fontSize: 12, wordBreak: 'break-all', resize: 'vertical' }}
+            value={bookmarklet}
+            onFocus={(e) => e.currentTarget.select()}
+          />
+          <div className="row">
+            <button type="button" className="btn" onClick={() => void copyBookmarklet()}>
+              Скопіювати код закладки
             </button>
           </div>
         </section>
