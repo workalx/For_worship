@@ -3,7 +3,6 @@ import userEvent from '@testing-library/user-event';
 import { db, listSongs, saveSong } from '../db/db';
 import { decodeText, importSongFiles, type ImportFile } from './bulkImport';
 import { LibraryScreen } from './LibraryScreen';
-import type { LibraryLoader } from './HymnLibrary';
 
 const enc = new TextEncoder();
 const file = (name: string, content: string | Uint8Array, size?: number): ImportFile => {
@@ -66,11 +65,9 @@ describe('масовий імпорт', () => {
 });
 
 describe('кнопка «Імпорт файлів»', () => {
-  const noLibrary: LibraryLoader = { loadIndex: () => new Promise(() => {}), loadSong: () => new Promise(() => {}) };
-
   test('імпортує вибрані файли, показує звіт і нові пісні в списку', async () => {
     const user = userEvent.setup({ applyAccept: false });
-    render(<LibraryScreen onPlay={() => {}} library={noLibrary} />);
+    render(<LibraryScreen onPlay={() => {}} />);
     const input = await screen.findByLabelText('Імпорт файлів пісень');
     await user.upload(input, [
       new File(['{title: Нова з файлу}\n[D]Слово'], 'new.cho', { type: 'text/plain' }),

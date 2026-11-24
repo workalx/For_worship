@@ -3,6 +3,8 @@
   flex: 1; min-height: 0; overflow-y: auto; padding: 18px 22px; display: flex; flex-direction: column; gap: 16px;
   max-width: 860px;
 }
+/* Панелі не стискаються: інакше в низькому вікні їхній вміст (кнопки) ховається у внутрішньому скролі. */
+.settings-body > .panel { flex-shrink: 0; }
 .hint { color: var(--muted); font-size: 14px; line-height: 1.5; margin: 0; }
 .hint b { color: var(--text); font-weight: 500; }
 details { display: flex; flex-direction: column; gap: 8px; }

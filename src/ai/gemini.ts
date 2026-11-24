@@ -1,10 +1,10 @@
 import { AiError, type AiProvider, type SongCandidate } from './provider';
-import { photoPrompt, searchPrompt, urlPrompt } from './prompts';
+import { photoPrompt } from './prompts';
 import { parseChord } from '../music/chords';
 
 const API = 'https://generativelanguage.googleapis.com/v1beta/models';
 
-export type GeminiConfig = { apiKey: string; searchModel: string; photoModel: string };
+export type GeminiConfig = { apiKey: string; photoModel: string };
 
 type Part = { text?: string; inline_data?: { mime_type: string; data: string } };
 
@@ -55,10 +55,6 @@ async function blobToBase64(blob: Blob): Promise<string> {
   return btoa(bin);
 }
 
-function isUrl(s: string): boolean {
-  return /^https?:\/\/\S+$/i.test(s.trim());
-}
-
 export function createGeminiProvider(cfg: GeminiConfig, fetchFn: typeof fetch = fetch): AiProvider {
   async function generate(model: string, parts: Part[], tools?: object[]): Promise<string> {
     let res: Response;
@@ -87,19 +83,6 @@ export function createGeminiProvider(cfg: GeminiConfig, fetchFn: typeof fetch = 
   }
 
   return {
-    async searchSongs(query) {
-      const q = query.trim();
-      const url = isUrl(q);
-      const text = url
-        ? await generate(cfg.photoModel, [{ text: urlPrompt(q) }], [{ url_context: {} }])
-        : await generate(cfg.searchModel, [{ text: searchPrompt(q) }], [{ google_search: {} }, { url_context: {} }]);
-      const json = extractJson(text);
-      const list = (Array.isArray(json) ? json : json ? [json] : []).map(toCandidate).filter((c): c is SongCandidate => !!c);
-      if (list.length === 0) throw new AiError('empty');
-      if (url) for (const c of list) c.source ??= q;
-      return list;
-    },
-
     async recognizePhoto(image) {
       const data = await blobToBase64(image);
       const text = await generate(cfg.photoModel, [

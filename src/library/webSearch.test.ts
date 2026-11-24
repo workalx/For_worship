@@ -1,12 +1,12 @@
 import { isWebUrl, webSearchUrl } from './webSearch';
 
-test('будує пошук «назва акорди» у Brave за замовчуванням', () => {
+test('будує пошук «назва chords» у Brave за замовчуванням', () => {
   expect(webSearchUrl(' Великий Бог ')).toBe(
-    `https://search.brave.com/search?q=${encodeURIComponent('Великий Бог акорди')}`,
+    `https://search.brave.com/search?q=${encodeURIComponent('Великий Бог chords')}`,
   );
 });
 
-test('не дублює слово «акорди» і враховує вибрану пошукову систему', () => {
+test('не дублює слово «акорди»/«chords» і враховує вибрану пошукову систему', () => {
   expect(webSearchUrl('Великий Бог акорди', 'google')).toBe(
     `https://www.google.com/search?q=${encodeURIComponent('Великий Бог акорди')}`,
   );

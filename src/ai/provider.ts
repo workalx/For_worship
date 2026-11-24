@@ -9,18 +9,17 @@ export type SongCandidate = {
 };
 
 export interface AiProvider {
-  /** Пошук пісні за назвою або читання сторінки за посиланням. */
-  searchSongs(query: string): Promise<SongCandidate[]>;
   recognizePhoto(image: Blob): Promise<SongCandidate>;
 }
 
-export type AiErrorKind = 'no-key' | 'quota' | 'network' | 'empty' | 'bad-key' | 'unknown';
+export type AiErrorKind = 'no-key' | 'quota' | 'network' | 'empty' | 'ocr' | 'bad-key' | 'unknown';
 
 const MESSAGES: Record<AiErrorKind, string> = {
   'no-key': 'Додайте ключ Gemini в налаштуваннях',
   quota: 'Безкоштовний ліміт Gemini на сьогодні вичерпано. Спробуйте пізніше або вставте текст пісні вручну',
-  network: 'Немає інтернету. Збережені пісні працюють, а для пошуку потрібна мережа',
-  empty: 'Пісню не знайдено. Спробуйте іншу назву, додайте виконавця або вставте посилання на сторінку з акордами',
+  network: 'Немає інтернету. Збережені пісні працюють, а для розпізнавання фото потрібна мережа',
+  empty: 'Не вдалося розпізнати пісню на фото. Спробуйте чіткіше фото або вставте текст пісні вручну',
+  ocr: 'Не вдалося розпізнати фото на пристрої. Спробуйте чіткіше фото або вставте текст пісні вручну',
   'bad-key': 'Ключ Gemini не підходить. Перевірте його в налаштуваннях',
   unknown: 'Gemini не зміг виконати запит. Спробуйте ще раз або вставте текст пісні вручну',
 };

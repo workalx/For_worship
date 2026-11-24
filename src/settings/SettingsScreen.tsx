@@ -1,11 +1,12 @@
 import { useRef, useState } from 'react';
 import { checkKey } from '../ai/gemini';
 import { exportAll, importAll } from '../db/backup';
-import { DEFAULT_PHOTO_MODEL, DEFAULT_SEARCH_MODEL, loadSettings, saveSettings } from './settings';
+import { DEFAULT_PHOTO_MODEL, loadSettings, saveSettings } from './settings';
 import { SEARCH_ENGINES, type SearchEngine } from '../library/webSearch';
 import './Settings.css';
 import { Icon } from '../components/Icon';
 import { X } from 'lucide-react';
+import { bookmarkletHref, currentAppUrl } from '../songselect/bookmarklet';
 
 function today(): string {
   const d = new Date();
@@ -17,7 +18,6 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
   const initial = loadSettings();
   const [key, setKey] = useState(initial.geminiKey);
   const [show, setShow] = useState(false);
-  const [searchModel, setSearchModel] = useState(initial.searchModel);
   const [photoModel, setPhotoModel] = useState(initial.photoModel);
   const [searchEngine, setSearchEngine] = useState<SearchEngine>(initial.searchEngine);
   const [status, setStatus] = useState<string | null>(null);
@@ -28,7 +28,6 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
     saveSettings({
       provider: 'gemini',
       geminiKey: key.trim(),
-      searchModel: searchModel.trim() || DEFAULT_SEARCH_MODEL,
       photoModel: photoModel.trim() || DEFAULT_PHOTO_MODEL,
       searchEngine,
     });
@@ -54,6 +53,16 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
     setStatus('Копію збережено в «Завантаження»');
   };
 
+  const bookmarklet = bookmarkletHref(currentAppUrl());
+  const copyBookmarklet = async () => {
+    try {
+      await navigator.clipboard.writeText(bookmarklet);
+      setStatus('Код закладки скопійовано');
+    } catch {
+      setStatus('Не вдалося скопіювати — виділіть код у полі й скопіюйте вручну');
+    }
+  };
+
   const restore = async (file: File) => {
     try {
       const r = await importAll(await file.text());
@@ -73,7 +82,7 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
       </header>
       <div className="settings-body">
         <section className="panel">
-          <h3>Пошук і фото (Google Gemini)</h3>
+          <h3>Розпізнавання фото (Google Gemini)</h3>
           <p className="hint">
             Безкоштовний ключ: відкрийте <b>aistudio.google.com</b>, увійдіть з Google-акаунтом, натисніть
             «Get API key» → «Create API key», скопіюйте ключ і вставте сюди. Ключ зберігається лише на цьому планшеті.
@@ -94,13 +103,9 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
             </button>
           </div>
           <details>
-            <summary className="hint">Моделі (для досвідчених)</summary>
+            <summary className="hint">Модель (для досвідчених)</summary>
             <label className="field-row">
-              <span>Модель для пошуку</span>
-              <input className="field" value={searchModel} onChange={(e) => setSearchModel(e.target.value)} />
-            </label>
-            <label className="field-row">
-              <span>Модель для фото й посилань</span>
+              <span>Модель для фото</span>
               <input className="field" value={photoModel} onChange={(e) => setPhotoModel(e.target.value)} />
             </label>
           </details>
@@ -114,10 +119,10 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
           </div>
         </section>
         <section className="panel">
-          <h3>Пошук у браузері (без ключа)</h3>
+          <h3>Пошук в інтернеті</h3>
           <p className="hint">
-            Якщо ключа Gemini немає, кнопка «Шукати в інтернеті» відкриває пошук у браузері. Скопіюйте там текст пісні
-            з акордами й натисніть у програмі «Вставити з буфера».
+            Кнопка «Шукати в інтернеті» відкриває в браузері пошук «назва chords». Скопіюйте там текст пісні з акордами
+            й натисніть у програмі «Вставити з буфера».
           </p>
           <label className="field-row">
             <span>Пошукова система</span>
@@ -137,6 +142,32 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
           <div className="row">
             <button type="button" className="btn" onClick={save}>
               Зберегти вибір
+            </button>
+          </div>
+        </section>
+        <section className="panel">
+          <h3>SongSelect на планшеті</h3>
+          <p className="hint">
+            На планшеті розширення браузера не працюють, тому замість кнопки використовуйте закладку. Один раз:
+            скопіюйте код нижче, додайте в браузері будь-яку сторінку в закладки, змініть назву закладки на
+            <b> For Worship</b>, а адресу замініть скопійованим кодом.
+          </p>
+          <p className="hint">
+            Далі: відкрийте пісню на songselect.ccli.com, вкладку <b>Chord Sheet</b>, оберіть тональність, наберіть в
+            адресному рядку «For Worship» і торкніться закладки — пісня відкриється в програмі.
+          </p>
+          <textarea
+            className="field"
+            aria-label="Код закладки SongSelect"
+            readOnly
+            rows={3}
+            style={{ width: '100%', fontFamily: 'monospace', fontSize: 12, wordBreak: 'break-all', resize: 'vertical' }}
+            value={bookmarklet}
+            onFocus={(e) => e.currentTarget.select()}
+          />
+          <div className="row">
+            <button type="button" className="btn" onClick={() => void copyBookmarklet()}>
+              Скопіювати код закладки
             </button>
           </div>
         </section>
